@@ -342,15 +342,10 @@ export default function Home() {
 
       if (error) throw error;
 
-      const whatsappResponse = await fetch("/api/whatsapp/send", {
+      const whatsappResponse = await fetch("/api/whatsapp/booking-confirmation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: form.phone.replace(/\s/g, ""),
-          type: "template",
-          templateName: "direct_integration_test_template",
-          languageCode: "en_US",
-        }),
+        body: JSON.stringify({ bookingId: data.id }),
       });
       const whatsappResult = await whatsappResponse.json();
       if (!whatsappResponse.ok || !whatsappResult.success) {

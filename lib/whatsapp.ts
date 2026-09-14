@@ -132,38 +132,34 @@ export async function sendWhatsAppTextMessage({ to, text }: SendTextMessageOptio
 }
 
 export async function sendBookingConfirmationMessage(booking: BookingConfirmation) {
-  const status = statusLabels[booking.payment_status || ""] || booking.payment_status || "Onaylandı";
   const duration = Number(booking.duration_hours || 1);
-  const total = Number(booking.total_amount || 0);
-  const text =
-    `Merhaba ${booking.customer_name},\n\n` +
-    `Bagmanci Hali Saha rezervasyonunuz onaylandi.\n` +
-    `Tarih: ${booking.booking_date}\n` +
-    `Saat: ${booking.booking_time}\n` +
-    `Sure: ${duration} saat\n` +
-    `Tutar: ${total.toLocaleString("tr-TR")} TL\n` +
-    `Durum: ${status}\n\n` +
-    `Keyifli maclar dileriz.`;
-
-  const templateName = process.env.WHATSAPP_BOOKING_TEMPLATE_NAME;
-  if (!templateName) {
-    return sendWhatsAppTextMessage({ to: booking.phone, text });
-  }
+  const bookingDate = new Date(`${booking.booking_date}T12:00:00`);
+  const formattedDate = new Intl.DateTimeFormat("tr-TR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(bookingDate);
+  const weekday = new Intl.DateTimeFormat("tr-TR", {
+    weekday: "long",
+  }).format(bookingDate);
+  const [startHour, startMinute] = booking.booking_time.split(":").map(Number);
+  const endMinutes = startHour * 60 + startMinute + duration * 60;
+  const endHour = Math.floor(endMinutes / 60) % 24;
+  const endMinute = endMinutes % 60;
+  const timeRange = `${booking.booking_time} - ${String(endHour).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`;
 
   return sendWhatsAppTemplateMessage({
     to: booking.phone,
-    templateName,
-    languageCode: process.env.WHATSAPP_TEMPLATE_LANGUAGE || "tr",
+    templateName: "rezervasyon_onay",
+    languageCode: "tr",
     components: [
       {
         type: "body",
         parameters: [
           { type: "text", text: booking.customer_name },
-          { type: "text", text: booking.booking_date },
-          { type: "text", text: booking.booking_time },
-          { type: "text", text: `${duration} saat` },
-          { type: "text", text: `${total.toLocaleString("tr-TR")} TL` },
-          { type: "text", text: status },
+          { type: "text", text: formattedDate },
+          { type: "text", text: weekday },
+          { type: "text", text: timeRange },
         ],
       },
     ],
