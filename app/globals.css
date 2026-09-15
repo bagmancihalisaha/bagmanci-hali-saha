@@ -283,7 +283,7 @@ button { appearance: none; }
 .match-card strong { font-size: 13px; }
 .match-card small { margin-top: 5px; color: var(--muted); font-size: 11px; }
 .match-empty-state { background: white; color: var(--muted); }
-.reservation-grid { display: grid; grid-template-columns: repeat(17, minmax(92px, 1fr)); min-width: 1564px; }
+.reservation-grid { display: grid; width: 100%; grid-template-columns: repeat(17, minmax(0, 1fr)); }
 .reservation-corner, .reservation-hour, .reservation-day, .reservation-cell { min-height: 72px; border-right: 2px solid #c2cec5; border-bottom: 2px solid #c2cec5; }
 .reservation-corner, .reservation-day { position: sticky; left: 0; z-index: 3; background: white; box-shadow: 3px 0 0 #c2cec5; }
 .reservation-corner { z-index: 4; }
@@ -295,7 +295,7 @@ button { appearance: none; }
 .reservation-day { cursor: pointer; }
 .reservation-day-expanded { background: #dff0bd; box-shadow: inset 5px 0 0 var(--green), 0 0 0 1px var(--green); }
 .reservation-day span { color: var(--muted); font-size: 11px; }
-.reservation-cell { display: flex; min-width: 92px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; overflow: hidden; padding: 6px; background: white; font-size: 9px; text-align: left; }
+.reservation-cell { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; overflow: hidden; padding: 6px; background: white; font-size: 9px; text-align: left; }
 .reservation-cell-booked { background: #eaf5d1; border: 2px solid var(--green); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 65%); }
 .reservation-cell-subscriber { background: #fff8dc; border: 2px solid #c59627; box-shadow: inset 0 0 0 1px #f1d47c, 0 3px 12px rgb(180 135 24 / 12%); }
 .reservation-cell-subscription-locked { background: #dfe3df; border-color: #919b92; color: #667069; opacity: .72; }
