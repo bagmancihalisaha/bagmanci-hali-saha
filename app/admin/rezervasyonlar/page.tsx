@@ -8,6 +8,13 @@ import {
   RefreshCw,
   ShieldCheck,
   MessageCircle,
+  Check,
+  Copy,
+  Crown,
+  Phone,
+  Save,
+  Trash2,
+  X,
 } from "lucide-react";
 import { getSupabaseClient } from "../../../lib/supabase";
 
@@ -75,6 +82,11 @@ export default function AdminBookingsPage() {
     SubscriptionSlot[]
   >([]);
   const [manualOpen, setManualOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [bookingAmount, setBookingAmount] = useState("");
+  const [bookingPaymentStatus, setBookingPaymentStatus] = useState("unpaid");
+  const [savingBooking, setSavingBooking] = useState(false);
+  const [copiedPhone, setCopiedPhone] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<SubscriptionSlot | null>(null);
   const [manualBooking, setManualBooking] = useState<ManualBooking>({ booking_date: "", booking_time: "", customer_name: "", phone: "", total_amount: "1800", payment_status: "unpaid", notes: "" });
   const [savingManual, setSavingManual] = useState(false);
@@ -168,6 +180,61 @@ export default function AdminBookingsPage() {
         }`,
       );
     }
+  };
+
+  const openBookingDetails = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setBookingAmount(String(booking.total_amount ?? 0));
+    setBookingPaymentStatus(booking.payment_status);
+    setCopiedPhone(false);
+  };
+
+  const updateBookingPayment = async () => {
+    if (!selectedBooking || !bookingAmount.trim()) return;
+    setSavingBooking(true);
+    const amount = Number(bookingAmount);
+    const { data, error } = await getSupabaseClient()
+      .from("booking_requests")
+      .update({ total_amount: amount, payment_status: bookingPaymentStatus })
+      .eq("id", selectedBooking.id)
+      .select("id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, payment_status, subscriber")
+      .single();
+    setSavingBooking(false);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setBookings((current) => current.map((booking) => booking.id === data.id ? data : booking));
+    setSelectedBooking(data);
+    setMessage("Ödeme ve ücret bilgisi güncellendi.");
+  };
+
+  const deleteBooking = async () => {
+    if (!selectedBooking || !window.confirm(`${selectedBooking.customer_name} rezervasyonu silinsin mi?`)) return;
+    setSavingBooking(true);
+    const { error } = await getSupabaseClient().from("booking_requests").delete().eq("id", selectedBooking.id);
+    setSavingBooking(false);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setBookings((current) => current.filter((booking) => booking.id !== selectedBooking.id));
+    setSelectedBooking(null);
+    setMessage("Rezervasyon silindi.");
+  };
+
+  const copyPhone = async () => {
+    if (!selectedBooking) return;
+    await navigator.clipboard.writeText(selectedBooking.phone);
+    setCopiedPhone(true);
+    window.setTimeout(() => setCopiedPhone(false), 1800);
+  };
+
+  const bookingEndTime = (booking: Booking) => {
+    const [hoursPart, minutesPart] = booking.booking_time.split(":").map(Number);
+    const end = new Date(2000, 0, 1, hoursPart, minutesPart || 0);
+    end.setMinutes(end.getMinutes() + Number(booking.duration_hours || 1) * 60);
+    return end.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
   };
 
   const bookingAt = (date: string, hour: string) =>
@@ -422,6 +489,7 @@ export default function AdminBookingsPage() {
                       onClick={() => {
                         const locked = subscriptionSlots.find((slot) => subscriptionAt(date, hour) && slot.subscription_day === new Intl.DateTimeFormat("tr-TR", { weekday: "long" }).format(new Date(`${date}T12:00:00`)) && slot.subscription_time.startsWith(hour.slice(0, 5).replace(".", ":")));
                         if (locked) setSelectedSubscription(locked);
+                        else if (booking) openBookingDetails(booking);
                         else if (!booking) openManual(date, hour.slice(0, 5).replace(".", ":"));
                       }}
                       className={`reservation-cell relative group ${current ? "reservation-cell-current" : ""} ${booking ? "reservation-cell-booked" : ""} ${booking?.subscriber ? "reservation-cell-subscriber" : ""} ${subscription && !booking ? "reservation-cell-subscription-locked" : ""}`}
@@ -429,34 +497,12 @@ export default function AdminBookingsPage() {
                       {booking && (
                         <>
                           <strong>{booking.customer_name}</strong>
-                          <span className="reservation-cell-phone">
-                            {booking.phone}
-                          </span>
-                          <b>₺{booking.total_amount}</b>
-                          <em>
-                            {statusLabels[booking.payment_status] ||
-                              booking.payment_status}
-                          </em>
-                          {/* Tek Tık WhatsApp Butonu */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              sendWhatsAppConfirmation(booking);
-                            }}
-                            className="mt-1 flex items-center justify-center gap-1 rounded bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-emerald-700 transition"
-                            title="WhatsApp ile Bilgi Gönder"
-                          >
-                            <MessageCircle size={11} /> WP Gönder
-                          </button>
                         </>
                       )}
                       {subscription && !booking && (
                         <>
                           <strong>{subscriptionInfo?.profile?.full_name || "KİLİTLİ"}</strong>
-                          <span>{subscriptionInfo?.profile?.phone || "Abonelik slotu"}</span>
-                          <b>₺1.700</b>
-                          <em>ABONE</em>
+                          <Crown className="reservation-cell-crown" size={13} aria-label="Abone" />
                         </>
                       )}
                     </div>
@@ -471,8 +517,7 @@ export default function AdminBookingsPage() {
         </div>
 
         <p className="mt-3 text-[11px] text-[var(--muted)]">
-          Canlı saat sarı renkle işaretlenir. Dolu saatlerde takım kaptanı,
-          telefon, ücret ve ödeme durumu görünür.
+          Canlı saat sarı renkle işaretlenir. Dolu hücreye tıklayarak rezervasyon detaylarını ve ödeme yönetimini açabilirsiniz.
         </p>
 
         {expandedDate && (
@@ -524,6 +569,14 @@ export default function AdminBookingsPage() {
         </section>
 
         {manualOpen && <div className="admin-modal-backdrop" onClick={() => setManualOpen(false)}><div className="admin-modal" onClick={(event) => event.stopPropagation()}><div className="admin-modal-heading"><div><p>YENİ KAYIT</p><h2>Manuel Rezervasyon Ekle</h2></div><button type="button" onClick={() => setManualOpen(false)}>×</button></div><div className="admin-modal-grid"><label>Gün<input type="date" value={manualBooking.booking_date} onChange={(event) => setManualBooking({ ...manualBooking, booking_date: event.target.value })} /></label><label>Saat<input type="time" value={manualBooking.booking_time} onChange={(event) => setManualBooking({ ...manualBooking, booking_time: event.target.value })} /></label><label className="admin-modal-wide">Takım Kaptanı / Müşteri<input value={manualBooking.customer_name} onChange={(event) => setManualBooking({ ...manualBooking, customer_name: event.target.value })} /></label><label>Telefon<input value={manualBooking.phone} onChange={(event) => setManualBooking({ ...manualBooking, phone: event.target.value.replace(/\D/g, "").slice(0, 11) })} placeholder="05xxxxxxxxx" /></label><label>Ücret<input type="number" value={manualBooking.total_amount} onChange={(event) => setManualBooking({ ...manualBooking, total_amount: event.target.value })} /></label><label>Ödeme Durumu<select value={manualBooking.payment_status} onChange={(event) => setManualBooking({ ...manualBooking, payment_status: event.target.value })}><option value="paid">Ödendi</option><option value="deposit">Kapora Alındı</option><option value="unpaid">Ödenmedi / Maç Sonu</option></select></label><label className="admin-modal-wide">Not / Açıklama<textarea value={manualBooking.notes} onChange={(event) => setManualBooking({ ...manualBooking, notes: event.target.value })} /></label></div><button type="button" className="admin-modal-save" onClick={saveManual} disabled={savingManual}>{savingManual ? "Kaydediliyor..." : "Kaydet"}</button></div></div>}
+
+        {selectedBooking && <div className="admin-modal-backdrop" onClick={() => setSelectedBooking(null)}><div className="booking-detail-modal" onClick={(event) => event.stopPropagation()}>
+          <div className="booking-detail-heading"><div><p>REZERVASYON DETAYI</p><h2>{new Intl.DateTimeFormat("tr-TR", { weekday: "long" }).format(new Date(`${selectedBooking.booking_date}T12:00:00`))}, {selectedBooking.booking_time} - {bookingEndTime(selectedBooking)}</h2></div><button type="button" onClick={() => setSelectedBooking(null)} aria-label="Detayı kapat"><X size={20} /></button></div>
+          <div className="booking-detail-status"><span className={`booking-status booking-status-${selectedBooking.payment_status}`}>{statusLabels[selectedBooking.payment_status] || selectedBooking.payment_status}</span><span>{selectedBooking.booking_date}</span></div>
+          <section className="booking-detail-section"><h3>Müşteri bilgileri</h3><div className="booking-customer"><div className="booking-avatar">{selectedBooking.customer_name.slice(0, 1).toUpperCase()}</div><div><strong>{selectedBooking.customer_name}</strong><span>{selectedBooking.subscriber ? "Abone" : "Tek Seferlik"}</span></div></div><div className="booking-phone-row"><a href={`tel:${selectedBooking.phone}`}><Phone size={16} /> {selectedBooking.phone}</a><button type="button" onClick={copyPhone}>{copiedPhone ? <Check size={16} /> : <Copy size={16} />} {copiedPhone ? "Kopyalandı" : "Kopyala"}</button></div></section>
+          <section className="booking-detail-section"><h3>Ödeme yönetimi</h3><div className="booking-detail-fields"><label>Toplam ücret<input type="number" min="0" value={bookingAmount} onChange={(event) => setBookingAmount(event.target.value)} /></label><label>Ödeme durumu<select value={bookingPaymentStatus} onChange={(event) => setBookingPaymentStatus(event.target.value)}><option value="paid">Ödendi</option><option value="deposit">Kapora Alındı</option><option value="unpaid">Ödenmedi</option></select></label></div><button type="button" className="booking-primary-button" onClick={updateBookingPayment} disabled={savingBooking}><Save size={16} /> {savingBooking ? "Kaydediliyor..." : "Ödemeyi Güncelle"}</button></section>
+          <section className="booking-detail-actions"><button type="button" className="booking-whatsapp-button" onClick={() => sendWhatsAppConfirmation(selectedBooking)}><MessageCircle size={17} /> WhatsApp Onay / Hatırlatma Gönder</button><button type="button" className="booking-delete-button" onClick={deleteBooking} disabled={savingBooking}><Trash2 size={16} /> Rezervasyonu İptal Et / Sil</button></section>
+        </div></div>}
         
         {selectedSubscription && <div className="admin-modal-backdrop" onClick={() => setSelectedSubscription(null)}><div className="admin-modal subscription-detail-modal" onClick={(event) => event.stopPropagation()}><div className="admin-modal-heading"><div><p>GOLD ABONE</p><h2>{selectedSubscription.profile?.full_name || "Abone profili"}</h2></div><button type="button" onClick={() => setSelectedSubscription(null)}>×</button></div><div className="subscription-detail-list"><p><span>E-posta</span><strong>{selectedSubscription.profile?.email || "Kayıtlı e-posta yok"}</strong></p><p><span>Telefon</span><strong>{selectedSubscription.profile?.phone || "Telefon yok"}</strong></p><p><span>Kayıt tarihi</span><strong>{selectedSubscription.profile?.created_at ? new Intl.DateTimeFormat("tr-TR").format(new Date(selectedSubscription.profile.created_at)) : "-"}</strong></p><p><span>Toplam oynadığı hafta</span><strong>{selectedSubscription.completedWeeks || 0} hafta</strong></p></div></div></div>}
       </div>

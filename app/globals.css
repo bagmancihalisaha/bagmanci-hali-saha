@@ -283,7 +283,7 @@ button { appearance: none; }
 .match-card strong { font-size: 13px; }
 .match-card small { margin-top: 5px; color: var(--muted); font-size: 11px; }
 .match-empty-state { background: white; color: var(--muted); }
-.reservation-grid { display: grid; grid-template-columns: 112px repeat(15, minmax(68px, 1fr)) minmax(92px, 1fr); }
+.reservation-grid { display: grid; grid-template-columns: repeat(17, minmax(92px, 1fr)); min-width: 1564px; }
 .reservation-corner, .reservation-hour, .reservation-day, .reservation-cell { min-height: 72px; border-right: 2px solid #c2cec5; border-bottom: 2px solid #c2cec5; }
 .reservation-corner, .reservation-day { position: sticky; left: 0; z-index: 3; background: white; box-shadow: 3px 0 0 #c2cec5; }
 .reservation-corner { z-index: 4; }
@@ -295,7 +295,7 @@ button { appearance: none; }
 .reservation-day { cursor: pointer; }
 .reservation-day-expanded { background: #dff0bd; box-shadow: inset 5px 0 0 var(--green), 0 0 0 1px var(--green); }
 .reservation-day span { color: var(--muted); font-size: 11px; }
-.reservation-cell { display: flex; min-width: 68px; flex-direction: column; justify-content: center; gap: 3px; overflow: hidden; padding: 6px; background: white; font-size: 9px; }
+.reservation-cell { display: flex; min-width: 92px; flex-direction: column; align-items: center; justify-content: center; gap: 3px; overflow: hidden; padding: 6px; background: white; font-size: 9px; text-align: center; }
 .reservation-cell-booked { background: #eaf5d1; border: 2px solid var(--green); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 65%); }
 .reservation-cell-subscriber { background: #fff7d6; border-color: #b88716; box-shadow: inset 0 0 0 2px #e1b83f; }
 .reservation-cell-subscription-locked { background: #dfe3df; border-color: #919b92; color: #667069; opacity: .72; }
@@ -319,6 +319,34 @@ button { appearance: none; }
 .subscription-detail-list p { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 10px; font-size: 12px; }
 .subscription-detail-list span { color: var(--muted); }
 .subscription-detail-list strong { text-align: right; }
+.booking-detail-modal { width: min(560px, 100%); overflow: hidden; border: 1px solid rgb(212 175 55 / 55%); border-radius: 24px; background: #073b29; color: #fff8dc; box-shadow: 0 28px 90px rgb(0 0 0 / 38%); }
+.booking-detail-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgb(212 175 55 / 25%); padding: 26px 26px 18px; }
+.booking-detail-heading p { color: #e7c851; font-size: 10px; font-weight: 900; letter-spacing: .16em; }
+.booking-detail-heading h2 { max-width: 430px; margin-top: 6px; font-family: 'Manrope', sans-serif; font-size: 21px; font-weight: 900; text-transform: capitalize; }
+.booking-detail-heading > button { border: 0; background: transparent; color: #fff8dc; }
+.booking-detail-status { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgb(212 175 55 / 18%); padding: 14px 26px; color: rgb(255 248 220 / 62%); font-size: 11px; }
+.booking-status { border: 1px solid rgb(231 200 81 / 50%); border-radius: 999px; background: rgb(231 200 81 / 15%); padding: 5px 10px; color: #f7df79; font-size: 10px; font-weight: 900; text-transform: uppercase; }
+.booking-detail-section { border-bottom: 1px solid rgb(212 175 55 / 18%); padding: 21px 26px; }
+.booking-detail-section h3 { margin-bottom: 14px; color: #e7c851; font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.booking-customer { display: flex; align-items: center; gap: 12px; }
+.booking-avatar { display: flex; height: 42px; width: 42px; align-items: center; justify-content: center; border-radius: 13px; background: linear-gradient(145deg, #e7c851, #b48718); color: #073b29; font-size: 18px; font-weight: 900; }
+.booking-customer strong, .booking-customer span { display: block; }
+.booking-customer strong { color: white; font-size: 15px; }
+.booking-customer span { margin-top: 3px; color: rgb(255 248 220 / 62%); font-size: 11px; }
+.booking-phone-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+.booking-phone-row a, .booking-phone-row button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgb(212 175 55 / 30%); border-radius: 10px; background: rgb(255 255 255 / 7%); padding: 9px 11px; color: #fff8dc; font-size: 11px; font-weight: 800; text-decoration: none; }
+.booking-phone-row button { cursor: pointer; }
+.booking-detail-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.booking-detail-fields label { color: rgb(255 248 220 / 72%); font-size: 11px; font-weight: 800; }
+.booking-detail-fields input, .booking-detail-fields select { display: block; width: 100%; margin-top: 7px; border: 1px solid rgb(212 175 55 / 35%); border-radius: 10px; background: rgb(255 255 255 / 8%); padding: 11px; color: white; outline: none; }
+.booking-detail-fields option { color: var(--ink); }
+.booking-primary-button, .booking-whatsapp-button, .booking-delete-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border-radius: 11px; font-size: 11px; font-weight: 900; }
+.booking-primary-button { width: 100%; margin-top: 14px; border: 1px solid #e7c851; background: #e7c851; color: #073b29; }
+.booking-primary-button:disabled, .booking-delete-button:disabled { opacity: .55; }
+.booking-detail-actions { display: grid; gap: 9px; padding: 20px 26px 26px; }
+.booking-whatsapp-button { border: 1px solid #36c878; background: #159447; color: white; }
+.booking-delete-button { border: 1px solid rgb(248 113 113 / 45%); background: rgb(127 29 29 / 28%); color: #fecaca; }
+.reservation-cell-crown { position: absolute; top: 7px; right: 7px; color: #b88716; }
 .admin-luxury-header { border-bottom: 1px solid rgb(212 175 55 / 25%); background: rgb(5 54 38 / 90%); box-shadow: 0 12px 35px rgb(0 0 0 / 18%); backdrop-filter: blur(18px) saturate(130%); }
 .admin-luxury-brand { display: inline-flex; align-items: center; gap: 8px; color: white; font-family: 'Manrope', sans-serif; font-size: 15px; font-weight: 900; letter-spacing: .08em; text-decoration: none; }
 .admin-luxury-brand span { display: inline-flex; height: 34px; width: 34px; align-items: center; justify-content: center; border-radius: 10px; background: linear-gradient(145deg, #e7c851, #b48718); color: #073b29; }
@@ -428,9 +456,8 @@ button { appearance: none; }
 .subscriber-benefits-grid strong { color: #d4af37; font-family: 'Manrope', sans-serif; font-size: 22px; }
 .subscriber-benefits-grid p { margin-top: 20px; color: rgb(248 241 223 / 82%); font-size: 12px; line-height: 1.55; }
 @media (max-width: 640px) {
-  .reservation-grid { grid-template-columns: 94px repeat(15, 92px) 108px; min-width: 1582px; }
-  .reservation-corner, .reservation-hour { min-height: 58px; }
-  .reservation-day, .reservation-cell { min-height: 70px; }
+  .reservation-grid { grid-template-columns: repeat(17, 92px); min-width: 1564px; }
+  .reservation-corner, .reservation-hour, .reservation-day, .reservation-cell, .reservation-total-cell { min-height: 70px; }
   .reservation-hour { font-size: 9px; }
   .reservation-corner { padding: 6px; font-size: 9px; white-space: nowrap; }
   .reservation-scroll { overscroll-behavior-x: contain; scrollbar-width: thin; }
