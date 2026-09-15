@@ -26,6 +26,8 @@ type Booking = {
   booking_time: string;
   duration_hours: number;
   total_amount: number;
+  deposit_amount: number;
+  paid_amount: number;
   payment_status: string;
   subscriber: boolean;
 };
@@ -53,8 +55,8 @@ const days = [
   "Pazar",
 ];
 const statusLabels: Record<string, string> = {
-  paid: "Tamamı",
-  approved: "Tamamı",
+  paid: "Tamamı Ödendi",
+  approved: "Tamamı Ödendi",
   deposit: "Kapora",
   proof_submitted: "Kapora",
   unpaid: "Ödenmedi",
@@ -85,9 +87,9 @@ export default function AdminBookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [bookingAmount, setBookingAmount] = useState("");
   const [bookingPaymentStatus, setBookingPaymentStatus] = useState("unpaid");
+  const [bookingDeposit, setBookingDeposit] = useState("");
   const [savingBooking, setSavingBooking] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState(false);
-  const [selectedSubscription, setSelectedSubscription] = useState<SubscriptionSlot | null>(null);
   const [manualBooking, setManualBooking] = useState<ManualBooking>({ booking_date: "", booking_time: "", customer_name: "", phone: "", total_amount: "1800", payment_status: "unpaid", notes: "" });
   const [savingManual, setSavingManual] = useState(false);
   const [message, setMessage] = useState("Kontrol ediliyor...");
@@ -127,7 +129,7 @@ export default function AdminBookingsPage() {
     const { data, error } = await client
       .from("booking_requests")
       .select(
-        "id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, payment_status, subscriber",
+        "id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, subscriber",
       )
       .gte("booking_date", monthStart)
       .lte("booking_date", monthEnd)
@@ -185,19 +187,46 @@ export default function AdminBookingsPage() {
   const openBookingDetails = (booking: Booking) => {
     setSelectedBooking(booking);
     setBookingAmount(String(booking.total_amount ?? 0));
+    setBookingDeposit(String(booking.deposit_amount ?? 0));
     setBookingPaymentStatus(booking.payment_status);
     setCopiedPhone(false);
+  };
+
+  const openSubscriptionDetails = (slot: SubscriptionSlot, date: string, time: string) => {
+    openBookingDetails({
+      id: `subscription-${slot.id || slot.user_id}`,
+      customer_name: slot.profile?.full_name || "Abone profili",
+      phone: slot.profile?.phone || "",
+      booking_date: date,
+      booking_time: time,
+      duration_hours: 1,
+      total_amount: 1700,
+      deposit_amount: 0,
+      paid_amount: 0,
+      payment_status: "paid",
+      subscriber: true,
+    });
   };
 
   const updateBookingPayment = async () => {
     if (!selectedBooking || !bookingAmount.trim()) return;
     setSavingBooking(true);
     const amount = Number(bookingAmount);
+    const deposit = bookingPaymentStatus === "paid"
+      ? amount
+      : bookingPaymentStatus === "deposit"
+        ? Math.max(0, Number(bookingDeposit) || 0)
+        : 0;
+    if (selectedBooking.id.startsWith("subscription-")) {
+      setSavingBooking(false);
+      setMessage("Abonelik saatlerinin ödemesi abonelik yönetiminden düzenlenir.");
+      return;
+    }
     const { data, error } = await getSupabaseClient()
       .from("booking_requests")
-      .update({ total_amount: amount, payment_status: bookingPaymentStatus })
+      .update({ total_amount: amount, deposit_amount: deposit, paid_amount: deposit, payment_status: bookingPaymentStatus })
       .eq("id", selectedBooking.id)
-      .select("id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, payment_status, subscriber")
+      .select("id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, subscriber")
       .single();
     setSavingBooking(false);
     if (error) {
@@ -302,7 +331,7 @@ export default function AdminBookingsPage() {
   const saveManual = async () => {
     if (!manualBooking.customer_name.trim() || !/^0\d{10}$/.test(manualBooking.phone.replace(/\s/g, ""))) { setMessage("Ad soyad ve 11 haneli telefon zorunlu."); return; }
     setSavingManual(true);
-    const { data, error } = await getSupabaseClient().from("booking_requests").insert({ customer_name: manualBooking.customer_name.trim(), phone: manualBooking.phone.replace(/\s/g, ""), booking_date: manualBooking.booking_date, booking_time: manualBooking.booking_time, duration_hours: 1, package_name: "Manuel Rezervasyon", total_amount: Number(manualBooking.total_amount), deposit_amount: 0, payment_choice: "full", payment_status: manualBooking.payment_status, notes: manualBooking.notes }).select("id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, payment_status, subscriber").single();
+    const { data, error } = await getSupabaseClient().from("booking_requests").insert({ customer_name: manualBooking.customer_name.trim(), phone: manualBooking.phone.replace(/\s/g, ""), booking_date: manualBooking.booking_date, booking_time: manualBooking.booking_time, duration_hours: 1, package_name: "Manuel Rezervasyon", total_amount: Number(manualBooking.total_amount), deposit_amount: 0, paid_amount: 0, payment_choice: "full", payment_status: manualBooking.payment_status, notes: manualBooking.notes }).select("id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, subscriber").single();
     setSavingManual(false);
     if (error) { setMessage(error.message); return; }
     setBookings((current) => [...current, data]);
@@ -488,20 +517,22 @@ export default function AdminBookingsPage() {
                       tabIndex={0}
                       onClick={() => {
                         const locked = subscriptionSlots.find((slot) => subscriptionAt(date, hour) && slot.subscription_day === new Intl.DateTimeFormat("tr-TR", { weekday: "long" }).format(new Date(`${date}T12:00:00`)) && slot.subscription_time.startsWith(hour.slice(0, 5).replace(".", ":")));
-                        if (locked) setSelectedSubscription(locked);
-                        else if (booking) openBookingDetails(booking);
+                        if (booking) openBookingDetails(booking);
+                        else if (locked) openSubscriptionDetails(locked, date, hour.slice(0, 5).replace(".", ":"));
                         else if (!booking) openManual(date, hour.slice(0, 5).replace(".", ":"));
                       }}
-                      className={`reservation-cell relative group ${current ? "reservation-cell-current" : ""} ${booking ? "reservation-cell-booked" : ""} ${booking?.subscriber ? "reservation-cell-subscriber" : ""} ${subscription && !booking ? "reservation-cell-subscription-locked" : ""}`}
+                      className={`reservation-cell relative group ${current ? "reservation-cell-current" : ""} ${booking ? "reservation-cell-booked" : ""} ${booking?.subscriber || (subscription && !booking) ? "reservation-cell-subscriber" : ""}`}
                     >
                       {booking && (
                         <>
                           <strong>{booking.customer_name}</strong>
+                          <span className="reservation-cell-phone">{booking.phone}</span>
                         </>
                       )}
                       {subscription && !booking && (
                         <>
                           <strong>{subscriptionInfo?.profile?.full_name || "KİLİTLİ"}</strong>
+                          <span className="reservation-cell-phone">{subscriptionInfo?.profile?.phone || ""}</span>
                           <Crown className="reservation-cell-crown" size={13} aria-label="Abone" />
                         </>
                       )}
@@ -570,15 +601,14 @@ export default function AdminBookingsPage() {
 
         {manualOpen && <div className="admin-modal-backdrop" onClick={() => setManualOpen(false)}><div className="admin-modal" onClick={(event) => event.stopPropagation()}><div className="admin-modal-heading"><div><p>YENİ KAYIT</p><h2>Manuel Rezervasyon Ekle</h2></div><button type="button" onClick={() => setManualOpen(false)}>×</button></div><div className="admin-modal-grid"><label>Gün<input type="date" value={manualBooking.booking_date} onChange={(event) => setManualBooking({ ...manualBooking, booking_date: event.target.value })} /></label><label>Saat<input type="time" value={manualBooking.booking_time} onChange={(event) => setManualBooking({ ...manualBooking, booking_time: event.target.value })} /></label><label className="admin-modal-wide">Takım Kaptanı / Müşteri<input value={manualBooking.customer_name} onChange={(event) => setManualBooking({ ...manualBooking, customer_name: event.target.value })} /></label><label>Telefon<input value={manualBooking.phone} onChange={(event) => setManualBooking({ ...manualBooking, phone: event.target.value.replace(/\D/g, "").slice(0, 11) })} placeholder="05xxxxxxxxx" /></label><label>Ücret<input type="number" value={manualBooking.total_amount} onChange={(event) => setManualBooking({ ...manualBooking, total_amount: event.target.value })} /></label><label>Ödeme Durumu<select value={manualBooking.payment_status} onChange={(event) => setManualBooking({ ...manualBooking, payment_status: event.target.value })}><option value="paid">Ödendi</option><option value="deposit">Kapora Alındı</option><option value="unpaid">Ödenmedi / Maç Sonu</option></select></label><label className="admin-modal-wide">Not / Açıklama<textarea value={manualBooking.notes} onChange={(event) => setManualBooking({ ...manualBooking, notes: event.target.value })} /></label></div><button type="button" className="admin-modal-save" onClick={saveManual} disabled={savingManual}>{savingManual ? "Kaydediliyor..." : "Kaydet"}</button></div></div>}
 
-        {selectedBooking && <div className="admin-modal-backdrop" onClick={() => setSelectedBooking(null)}><div className="booking-detail-modal" onClick={(event) => event.stopPropagation()}>
-          <div className="booking-detail-heading"><div><p>REZERVASYON DETAYI</p><h2>{new Intl.DateTimeFormat("tr-TR", { weekday: "long" }).format(new Date(`${selectedBooking.booking_date}T12:00:00`))}, {selectedBooking.booking_time} - {bookingEndTime(selectedBooking)}</h2></div><button type="button" onClick={() => setSelectedBooking(null)} aria-label="Detayı kapat"><X size={20} /></button></div>
+        {selectedBooking && <div className="admin-modal-backdrop" onClick={() => setSelectedBooking(null)}><div className={`booking-detail-modal ${selectedBooking.subscriber ? "booking-detail-modal-subscriber" : ""}`} onClick={(event) => event.stopPropagation()}>
+          <div className="booking-detail-heading"><div><p>{selectedBooking.subscriber ? "GOLD ABONELİK" : "REZERVASYON DETAYI"}</p><h2>{new Intl.DateTimeFormat("tr-TR", { weekday: "long" }).format(new Date(`${selectedBooking.booking_date}T12:00:00`))}, {selectedBooking.booking_time} - {bookingEndTime(selectedBooking)}</h2></div><button type="button" onClick={() => setSelectedBooking(null)} aria-label="Detayı kapat"><X size={20} /></button></div>
           <div className="booking-detail-status"><span className={`booking-status booking-status-${selectedBooking.payment_status}`}>{statusLabels[selectedBooking.payment_status] || selectedBooking.payment_status}</span><span>{selectedBooking.booking_date}</span></div>
           <section className="booking-detail-section"><h3>Müşteri bilgileri</h3><div className="booking-customer"><div className="booking-avatar">{selectedBooking.customer_name.slice(0, 1).toUpperCase()}</div><div><strong>{selectedBooking.customer_name}</strong><span>{selectedBooking.subscriber ? "Abone" : "Tek Seferlik"}</span></div></div><div className="booking-phone-row"><a href={`tel:${selectedBooking.phone}`}><Phone size={16} /> {selectedBooking.phone}</a><button type="button" onClick={copyPhone}>{copiedPhone ? <Check size={16} /> : <Copy size={16} />} {copiedPhone ? "Kopyalandı" : "Kopyala"}</button></div></section>
-          <section className="booking-detail-section"><h3>Ödeme yönetimi</h3><div className="booking-detail-fields"><label>Toplam ücret<input type="number" min="0" value={bookingAmount} onChange={(event) => setBookingAmount(event.target.value)} /></label><label>Ödeme durumu<select value={bookingPaymentStatus} onChange={(event) => setBookingPaymentStatus(event.target.value)}><option value="paid">Ödendi</option><option value="deposit">Kapora Alındı</option><option value="unpaid">Ödenmedi</option></select></label></div><button type="button" className="booking-primary-button" onClick={updateBookingPayment} disabled={savingBooking}><Save size={16} /> {savingBooking ? "Kaydediliyor..." : "Ödemeyi Güncelle"}</button></section>
+          <section className="booking-detail-section"><h3>Ödeme yönetimi</h3><div className="booking-detail-fields"><label>Toplam ücret<input type="number" min="0" value={bookingAmount} onChange={(event) => setBookingAmount(event.target.value)} /></label><label>Ödeme durumu<select value={bookingPaymentStatus} onChange={(event) => setBookingPaymentStatus(event.target.value)}><option value="paid">Tamamı Ödendi</option><option value="unpaid">Ödenmedi</option><option value="deposit">Kapora Alındı</option></select></label>{bookingPaymentStatus === "deposit" && <label className="booking-detail-field-wide">Alınan kapora tutarı<input type="number" min="0" max={bookingAmount || undefined} value={bookingDeposit} onChange={(event) => setBookingDeposit(event.target.value)} /></label>}</div><div className={`booking-remaining ${bookingPaymentStatus === "paid" ? "booking-remaining-paid" : ""}`}>{bookingPaymentStatus === "paid" ? <>Kalan: ₺0 <span>(Tamamlandı)</span></> : <>Kalan Tutar: ₺{Math.max(0, Number(bookingAmount || 0) - (bookingPaymentStatus === "deposit" ? Number(bookingDeposit || 0) : 0)).toLocaleString("tr-TR")} <span>({bookingPaymentStatus === "deposit" ? "Ödenmedi" : "Tamamı Ödenmedi"})</span></>}</div><button type="button" className="booking-primary-button" onClick={updateBookingPayment} disabled={savingBooking || selectedBooking.id.startsWith("subscription-")}><Save size={16} /> {selectedBooking.id.startsWith("subscription-") ? "Abonelik kaydı" : savingBooking ? "Kaydediliyor..." : "Ödemeyi Güncelle"}</button></section>
           <section className="booking-detail-actions"><button type="button" className="booking-whatsapp-button" onClick={() => sendWhatsAppConfirmation(selectedBooking)}><MessageCircle size={17} /> WhatsApp Onay / Hatırlatma Gönder</button><button type="button" className="booking-delete-button" onClick={deleteBooking} disabled={savingBooking}><Trash2 size={16} /> Rezervasyonu İptal Et / Sil</button></section>
         </div></div>}
         
-        {selectedSubscription && <div className="admin-modal-backdrop" onClick={() => setSelectedSubscription(null)}><div className="admin-modal subscription-detail-modal" onClick={(event) => event.stopPropagation()}><div className="admin-modal-heading"><div><p>GOLD ABONE</p><h2>{selectedSubscription.profile?.full_name || "Abone profili"}</h2></div><button type="button" onClick={() => setSelectedSubscription(null)}>×</button></div><div className="subscription-detail-list"><p><span>E-posta</span><strong>{selectedSubscription.profile?.email || "Kayıtlı e-posta yok"}</strong></p><p><span>Telefon</span><strong>{selectedSubscription.profile?.phone || "Telefon yok"}</strong></p><p><span>Kayıt tarihi</span><strong>{selectedSubscription.profile?.created_at ? new Intl.DateTimeFormat("tr-TR").format(new Date(selectedSubscription.profile.created_at)) : "-"}</strong></p><p><span>Toplam oynadığı hafta</span><strong>{selectedSubscription.completedWeeks || 0} hafta</strong></p></div></div></div>}
       </div>
     </main>
   );
