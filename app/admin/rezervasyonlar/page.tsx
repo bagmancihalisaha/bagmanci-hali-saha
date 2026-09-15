@@ -372,7 +372,7 @@ export default function AdminBookingsPage() {
 
   return (
     <main className="reservation-page min-h-screen bg-[#f5f7f3] px-2 pt-1 pb-6 text-[var(--ink)] sm:px-5 lg:px-8">
-      <div className="mx-auto max-w-[1600px]">
+      <div className="reservation-page-frame mx-auto w-full max-w-[1800px]">
         {/* Üst Kısım: Başlık, Saat ve Ok Kontrolleri Hizalandı */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -469,8 +469,8 @@ export default function AdminBookingsPage() {
           </p>
         )}
 
-        <div className="reservation-scroll overflow-x-auto rounded-xl border border-[var(--line)] bg-white shadow-sm">
-          <div className="reservation-grid min-w-[1280px]">
+        <div className="reservation-scroll w-full overflow-x-auto rounded-xl border border-[var(--line)] bg-white shadow-sm">
+          <div className="reservation-grid">
             <div className="reservation-corner">Gün / Saat</div>
             {hours.map((hour) => (
               <div

@@ -295,7 +295,7 @@ button { appearance: none; }
 .reservation-day { cursor: pointer; }
 .reservation-day-expanded { background: #dff0bd; box-shadow: inset 5px 0 0 var(--green), 0 0 0 1px var(--green); }
 .reservation-day span { color: var(--muted); font-size: 11px; }
-.reservation-cell { display: flex; min-width: 92px; flex-direction: column; align-items: center; justify-content: center; gap: 4px; overflow: hidden; padding: 6px; background: white; font-size: 9px; text-align: center; }
+.reservation-cell { display: flex; min-width: 92px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; overflow: hidden; padding: 6px; background: white; font-size: 9px; text-align: left; }
 .reservation-cell-booked { background: #eaf5d1; border: 2px solid var(--green); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 65%); }
 .reservation-cell-subscriber { background: #fff8dc; border: 2px solid #c59627; box-shadow: inset 0 0 0 1px #f1d47c, 0 3px 12px rgb(180 135 24 / 12%); }
 .reservation-cell-subscription-locked { background: #dfe3df; border-color: #919b92; color: #667069; opacity: .72; }
@@ -367,12 +367,12 @@ button { appearance: none; }
 @media (max-width: 640px) { .admin-modal-grid { grid-template-columns: 1fr; } .admin-modal-wide { grid-column: auto; } .subscription-detail-list p { display: grid; gap: 4px; } .subscription-detail-list strong { text-align: left; } }
 .reservation-cell-current { background: #fff4b8; box-shadow: inset 0 0 0 2px #c59b00; }
 .reservation-clock { min-width: 88px; border-radius: 999px; background: var(--green); padding: 8px 12px; color: white; font-size: 13px; letter-spacing: .08em; text-align: center; }
-.reservation-cell strong, .reservation-cell span, .reservation-cell b, .reservation-cell em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reservation-cell strong, .reservation-cell span, .reservation-cell b, .reservation-cell em { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .reservation-cell strong { color: var(--green); font-size: 10px; font-weight: 900; text-transform: uppercase; }
 .reservation-cell span { color: var(--muted); font-size: 9px; }
 .reservation-cell b { font-size: 10px; }
 .reservation-cell em { color: #8a5a00; font-size: 8px; font-style: normal; font-weight: 800; text-transform: uppercase; }
-.reservation-cell-phone { order: 5; margin-top: 1px; }
+.reservation-cell-phone { margin-top: 1px; }
 .reservation-cell-subscriber::before { content: 'ABONE'; position: absolute; top: 3px; right: 3px; color: #8a5a00; font-size: 7px; font-weight: 900; letter-spacing: .06em; }
 .reservation-cell-booked { position: relative; }
 .reservation-cell span { order: 5; }
@@ -464,6 +464,7 @@ button { appearance: none; }
 .subscriber-benefits-grid strong { color: #d4af37; font-family: 'Manrope', sans-serif; font-size: 22px; }
 .subscriber-benefits-grid p { margin-top: 20px; color: rgb(248 241 223 / 82%); font-size: 12px; line-height: 1.55; }
 @media (max-width: 640px) {
+  .reservation-page-frame { width: 100%; }
   .reservation-grid { grid-template-columns: repeat(17, 92px); min-width: 1564px; }
   .reservation-corner, .reservation-hour, .reservation-day, .reservation-cell, .reservation-total-cell { min-height: 70px; }
   .reservation-hour { font-size: 9px; }
