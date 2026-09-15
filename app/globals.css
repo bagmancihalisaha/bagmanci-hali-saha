@@ -910,6 +910,23 @@ main#top > footer { order: 6; }
 .dark .reservation-cell span { color: #b7c9c0; }
 .dark .reservation-cell-current { background: rgb(212 175 55 / 30%); }
 
+/* Keep the admin reservation notebook light for legibility in dark theme. */
+.dark .reservation-scroll { background: #fffdf7; border-color: #d9dfd6; }
+.dark .reservation-corner, .dark .reservation-day, .dark .reservation-cell {
+  background: #fffdf7;
+  border-color: #cbd8cc;
+  color: #18382a;
+}
+.dark .reservation-hour { background: #f3f6ef; color: #526258; border-color: #cbd8cc; }
+.dark .reservation-total-heading, .dark .reservation-total-cell { background: #eef4eb; color: #24533d; border-color: #cbd8cc; }
+.dark .reservation-cell-booked { background: #edf7df; border-color: #79a35e; }
+.dark .reservation-cell-subscriber { background: #fff8dc; border-color: #c59627; }
+.dark .reservation-cell strong { color: #24533d; }
+.dark .reservation-cell span { color: #526258; }
+.dark .reservation-cell-current { background: #fff4b8; box-shadow: inset 0 0 0 2px #c59b00; }
+.dark .reservation-day-current { background: #eaf5d1; }
+.dark .reservation-day-expanded { background: #dff0bd; }
+
 /* Smooth global theme transition */
 .schedule-slot, .account-card, .account-card input, .account-card select,
 .customer-input, .customer-social-button, .match-step, .match-card,
