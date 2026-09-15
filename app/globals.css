@@ -283,7 +283,7 @@ button { appearance: none; }
 .match-card strong { font-size: 13px; }
 .match-card small { margin-top: 5px; color: var(--muted); font-size: 11px; }
 .match-empty-state { background: white; color: var(--muted); }
-.reservation-page-frame { width: calc(100vw - 32px); max-width: none; margin-left: calc(50% - 50vw + 16px); margin-right: calc(50% - 50vw + 16px); }
+.reservation-page-frame { width: calc(100vw - 96px); max-width: none; margin-left: calc(50% - 50vw + 48px); margin-right: calc(50% - 50vw + 48px); }
 .reservation-grid { display: grid; width: 100%; grid-template-columns: repeat(17, minmax(0, 1fr)); }
 .reservation-corner, .reservation-hour, .reservation-day, .reservation-cell { min-height: 72px; border-right: 2px solid #c2cec5; border-bottom: 2px solid #c2cec5; }
 .reservation-corner, .reservation-day { position: sticky; left: 0; z-index: 3; background: white; box-shadow: 3px 0 0 #c2cec5; }
