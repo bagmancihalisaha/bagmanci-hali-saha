@@ -5,6 +5,10 @@
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 const API_VERSION = process.env.WHATSAPP_API_VERSION || "v25.0";
+const BOOKING_TEMPLATE_LANGUAGE =
+  process.env.WHATSAPP_BOOKING_TEMPLATE_LANGUAGE ||
+  process.env.WHATSAPP_TEMPLATE_LANGUAGE ||
+  "tr";
 
 export interface SendTemplateOptions {
   to: string; // Telefon numarası (örn: "905324341268")
@@ -94,7 +98,13 @@ export async function sendWhatsAppTemplateMessage({
     }),
   });
 
-  const data = await response.json();
+  const responseText = await response.text();
+  let data: unknown;
+  try {
+    data = responseText ? JSON.parse(responseText) : null;
+  } catch {
+    data = { error: { message: responseText || "Meta boş yanıt döndürdü." } };
+  }
   return { ok: response.ok, status: response.status, data };
 }
 
@@ -127,7 +137,13 @@ export async function sendWhatsAppTextMessage({ to, text }: SendTextMessageOptio
     }),
   });
 
-  const data = await response.json();
+  const responseText = await response.text();
+  let data: unknown;
+  try {
+    data = responseText ? JSON.parse(responseText) : null;
+  } catch {
+    data = { error: { message: responseText || "Meta boş yanıt döndürdü." } };
+  }
   return { ok: response.ok, status: response.status, data };
 }
 
@@ -151,7 +167,7 @@ export async function sendBookingConfirmationMessage(booking: BookingConfirmatio
   return sendWhatsAppTemplateMessage({
     to: booking.phone,
     templateName: "rezervasyon_onay",
-    languageCode: "tr",
+    languageCode: BOOKING_TEMPLATE_LANGUAGE,
     components: [
       {
         type: "body",
