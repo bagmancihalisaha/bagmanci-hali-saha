@@ -29,6 +29,14 @@ export type WhatsAppTemplateComponent = {
   parameters: { type: "text"; text: string }[];
 };
 
+type WhatsAppResponseData = {
+  error?: {
+    message?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+} | null;
+
 export type BookingConfirmation = {
   customer_name: string;
   phone: string;
@@ -99,7 +107,7 @@ export async function sendWhatsAppTemplateMessage({
   });
 
   const responseText = await response.text();
-  let data: unknown;
+  let data: WhatsAppResponseData;
   try {
     data = responseText ? JSON.parse(responseText) : null;
   } catch {
@@ -138,7 +146,7 @@ export async function sendWhatsAppTextMessage({ to, text }: SendTextMessageOptio
   });
 
   const responseText = await response.text();
-  let data: unknown;
+  let data: WhatsAppResponseData;
   try {
     data = responseText ? JSON.parse(responseText) : null;
   } catch {
