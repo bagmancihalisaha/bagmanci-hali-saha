@@ -112,25 +112,43 @@ export default function AdminPage() {
     }
     try {
       const client = getSupabaseClient();
-      let challengeId = mfaChallengeId;
-      if (mfaMode === "enroll") {
-        const { data: challenge, error: challengeError } =
-          await client.auth.mfa.challenge({ factorId: mfaFactorId });
-        if (challengeError) throw challengeError;
-        challengeId = challenge.id;
-      }
+      const { data: challenge, error: challengeError } =
+        await client.auth.mfa.challenge({ factorId: mfaFactorId });
+      if (challengeError) throw challengeError;
+      setMfaChallengeId(challenge.id);
       const { error } = await client.auth.mfa.verify({
         factorId: mfaFactorId,
-        challengeId,
-        code: mfaCode,
+        challengeId: challenge.id,
+        code: mfaCode.trim(),
       });
       if (error) throw error;
       setLoggedIn(true);
       setMfaMode(null);
       setMfaCode("");
       setLoginError("");
-    } catch {
-      setLoginError("Kod hatalı veya süresi doldu. Yeni bir kod deneyin.");
+    } catch (error) {
+      setLoginError(
+        error instanceof Error
+          ? `Doğrulama başarısız: ${error.message}`
+          : "Kod hatalı veya süresi doldu. Yeni bir kod deneyin.",
+      );
+    }
+  };
+
+  const refreshMfaChallenge = async () => {
+    if (!mfaFactorId) return;
+    try {
+      const { data, error } = await getSupabaseClient().auth.mfa.challenge({
+        factorId: mfaFactorId,
+      });
+      if (error) throw error;
+      setMfaChallengeId(data.id);
+      setMfaCode("");
+      setLoginError("Yeni doğrulama isteği hazır. Authenticator kodunu girin.");
+    } catch (error) {
+      setLoginError(
+        error instanceof Error ? error.message : "Yeni doğrulama isteği alınamadı.",
+      );
     }
   };
 
@@ -182,6 +200,13 @@ export default function AdminPage() {
             className="mt-5 w-full rounded-full bg-[var(--green)] px-5 py-4 text-sm font-extrabold text-white"
           >
             Kodu doğrula
+          </button>
+          <button
+            type="button"
+            onClick={refreshMfaChallenge}
+            className="mt-3 w-full rounded-full border border-[var(--line)] px-5 py-3 text-sm font-bold text-[var(--green)]"
+          >
+            Yeni doğrulama iste
           </button>
           {loginError && (
             <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">
