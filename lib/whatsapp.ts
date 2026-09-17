@@ -172,22 +172,39 @@ export async function sendBookingConfirmationMessage(booking: BookingConfirmatio
   const endMinute = endMinutes % 60;
   const timeRange = `${booking.booking_time} - ${String(endHour).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`;
 
-  return sendWhatsAppTemplateMessage({
+  const components = [
+    {
+      type: "body" as const,
+      parameters: [
+        { type: "text" as const, text: booking.customer_name },
+        { type: "text" as const, text: formattedDate },
+        { type: "text" as const, text: weekday },
+        { type: "text" as const, text: timeRange },
+      ],
+    },
+  ];
+  const languages = [
+    BOOKING_TEMPLATE_LANGUAGE,
+    "tr_TR",
+    "tr",
+    "en_US",
+  ].filter((language, index, values) => values.indexOf(language) === index);
+  let result = await sendWhatsAppTemplateMessage({
     to: booking.phone,
     templateName: "rezervasyon_onay",
-    languageCode: BOOKING_TEMPLATE_LANGUAGE,
-    components: [
-      {
-        type: "body",
-        parameters: [
-          { type: "text", text: booking.customer_name },
-          { type: "text", text: formattedDate },
-          { type: "text", text: weekday },
-          { type: "text", text: timeRange },
-        ],
-      },
-    ],
+    languageCode: languages[0],
+    components,
   });
+  for (const languageCode of languages.slice(1)) {
+    if (result.ok) break;
+    result = await sendWhatsAppTemplateMessage({
+      to: booking.phone,
+      templateName: "rezervasyon_onay",
+      languageCode,
+      components,
+    });
+  }
+  return result;
 }
 
 export async function sendPhoneVerificationCode(to: string, code: string) {
