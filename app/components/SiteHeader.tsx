@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRef } from "react";
 import { getSupabaseClient } from "../../lib/supabase";
 import SiteLogo from "./SiteLogo";
 import ThemeToggle from "./ThemeToggle";
@@ -20,25 +21,37 @@ export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [userName, setUserName] = useState("");
+  const accountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const client = getSupabaseClient();
     const loadUser = async () => {
       const { data } = await client.auth.getUser();
-      setUserName(data.user?.user_metadata?.full_name || "Abdullah BAĞMANCI");
+      setUserName(data.user?.user_metadata?.full_name || "");
     };
     loadUser();
     const { data: listener } = client.auth.onAuthStateChange(
       (_event, session) => {
         setUserName(
           session?.user?.user_metadata?.full_name ||
-            (session ? "Abdullah BAĞMANCI" : ""),
+            "",
         );
         setAccountOpen(false);
       },
     );
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!accountOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!accountRef.current?.contains(event.target as Node)) {
+        setAccountOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [accountOpen]);
 
   const signOut = async () => {
     await getSupabaseClient().auth.signOut();
@@ -104,7 +117,7 @@ export default function SiteHeader() {
 
           {/* HESABIM BUTONU */}
           {userName ? (
-            <div className="relative">
+            <div ref={accountRef} className="relative">
               <button
                 type="button"
                 className="flex h-8 items-center gap-1 rounded-full bg-amber-400 px-3 text-xs font-bold text-slate-950 shadow-sm transition hover:bg-amber-300"

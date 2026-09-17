@@ -157,7 +157,7 @@ create policy "admins manage subscription requests" on public.subscription_reque
 alter table public.booking_requests enable row level security;
 drop policy if exists "public can create booking requests" on public.booking_requests;
 drop policy if exists "admins manage booking requests" on public.booking_requests;
-create policy "public can create booking requests" on public.booking_requests for insert to anon, authenticated with check (true);
+create policy "public can create booking requests" on public.booking_requests for insert to anon, authenticated with check (user_id is null or user_id = auth.uid());
 drop policy if exists "customers read own booking requests" on public.booking_requests;
 create policy "customers read own booking requests" on public.booking_requests for select to authenticated using (user_id = auth.uid() or public.is_admin());
 create policy "admins manage booking requests" on public.booking_requests for all to authenticated using (public.is_admin()) with check (public.is_admin());

@@ -12,7 +12,6 @@ import {
   Instagram,
   Mail,
   MapPin,
-  MessageCircle,
   Phone,
   Users,
 } from "lucide-react";
@@ -129,14 +128,12 @@ export default function Home() {
   >([]);
   const [form, setForm] = useState({ name: "", phone: "", subscriber: false });
   const [subscriberVerified, setSubscriberVerified] = useState(false);
-  const [discountEligible, setDiscountEligible] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [profileDefaults, setProfileDefaults] = useState({
     name: "",
     phone: "",
   });
   const [notice, setNotice] = useState("");
-  const [waLoading, setWaLoading] = useState(false);
 
   const selectedLabel =
     days.find((day) => day.date === selectedDay)?.full ?? selectedDay;
@@ -148,12 +145,25 @@ export default function Home() {
     : selectedPackage.title === "Gece Tarifesi";
   const tariffPrice =
     selectedPackage.title === "Maç Kaydı" ? 0 : isNightSlot ? 1800 : 1200;
-  const bookingPackageTitle =
-    selectedPackage.title === "Maç Kaydı"
-      ? selectedPackage.title
-      : `${isNightSlot ? "Gece" : "Gündüz"} Tarifesi`;
+  const selectedWeekday = new Intl.DateTimeFormat("tr-TR", {
+    weekday: "long",
+  })
+    .format(new Date(`${selectedDay}T12:00:00`))
+    .toLocaleLowerCase("tr-TR");
+  const selectedSubscriptionPrice =
+    subscriberVerified &&
+    Boolean(
+      selectedSlot &&
+        subscriptionSlots.some(
+          (item) =>
+            item.user_id === currentUserId &&
+            item.subscription_day.toLocaleLowerCase("tr-TR") === selectedWeekday &&
+            item.subscription_time.startsWith(selectedSlot) &&
+            item.active,
+        ),
+    );
   const price =
-    discountEligible && tariffPrice
+    selectedSubscriptionPrice && tariffPrice
       ? 1700 * selectedDuration
       : tariffPrice * selectedDuration;
 
@@ -223,24 +233,6 @@ export default function Home() {
           phone: profile?.phone || data.user.user_metadata?.phone || "",
         });
 
-        const { count } = await client
-          .from("booking_requests")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", data.user.id)
-          .in("payment_status", ["paid", "approved"]);
-
-        const subscriptionAge = ownSlot?.created_at
-          ? Date.now() - new Date(ownSlot.created_at).getTime()
-          : 0;
-
-        setDiscountEligible(
-          Boolean(
-            isActiveSubscriber &&
-              subscriptionAge >= 7 * 86400000 &&
-              (count || 0) >= 1,
-          ),
-        );
-
         setForm((current) => ({
           ...current,
           name:
@@ -261,49 +253,6 @@ export default function Home() {
       ?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // DOĞRUDAN METADAN TEST MESAJI TETİKLEYEN FONKSİYON
-  const sendTestWhatsApp = async () => {
-    let targetPhone = form.phone.replace(/\D/g, "");
-    if (!targetPhone) {
-      targetPhone = "905431005063";
-    } else if (targetPhone.startsWith("0")) {
-      targetPhone = "9" + targetPhone;
-    } else if (!targetPhone.startsWith("90")) {
-      targetPhone = "90" + targetPhone;
-    }
-
-    setWaLoading(true);
-    setNotice(`0414 247 51 51 hattından ${targetPhone} numarasına test mesajı gönderiliyor...`);
-
-    try {
-      const res = await fetch("/api/whatsapp/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          to: targetPhone,
-          type: "template",
-          templateName: "3p_direct_integration_test_template",
-          languageCode: "en_US",
-        }),
-      });
-
-      const responseData = await res.json();
-
-      if (res.ok && responseData.success) {
-        setNotice(`✅ Tebrikler! WhatsApp test mesajı ${targetPhone} numarasına başarıyla gönderildi!`);
-      } else {
-        console.error("Meta WhatsApp Hatası:", responseData);
-        setNotice(`WhatsApp Gönderim Hatası: ${responseData.error || "Bilinmeyen hata"}`);
-      }
-    } catch (err: any) {
-      setNotice(`Bağlantı hatası: ${err.message}`);
-    } finally {
-      setWaLoading(false);
-    }
-  };
-
   const submitBooking = async () => {
     if (
       !selectedSlot ||
@@ -320,27 +269,28 @@ export default function Home() {
         setNotice("Seçtiğiniz saat artık müsait değil. Lütfen başka bir saat seçin.");
         return;
       }
-      const { data: authData } = await client.auth.getUser();
-      const { data, error } = await client
-        .from("booking_requests")
-        .insert({
-          user_id: authData.user?.id || null,
-          customer_name: form.name.trim(),
-          phone: form.phone.replace(/\s/g, ""),
-          booking_date: selectedDay,
-          booking_time: selectedSlot,
-          duration_hours: selectedDuration,
-          subscriber: subscriberVerified,
-          package_name: bookingPackageTitle,
-          total_amount: price,
-          deposit_amount: 600,
-          payment_choice: "deposit",
-          payment_status: "pending",
-        })
-        .select("id, payment_token")
-        .single();
-
-      if (error) throw error;
+      const { data: sessionData } = await client.auth.getSession();
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionData.session?.access_token
+            ? { Authorization: `Bearer ${sessionData.session.access_token}` }
+            : {}),
+        },
+        body: JSON.stringify({
+          name: form.name,
+          phone: form.phone,
+          date: selectedDay,
+          time: selectedSlot,
+          duration: selectedDuration,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Rezervasyon oluşturulamadı.");
+      }
+      const data = result.booking;
 
       const whatsappResponse = await fetch("/api/whatsapp/booking-confirmation", {
         method: "POST",
@@ -367,10 +317,6 @@ export default function Home() {
       );
     }
   };
-
-  const selectedWeekday = new Intl.DateTimeFormat("tr-TR", {
-    weekday: "long",
-  }).format(new Date(`${selectedDay}T12:00:00`)).toLocaleLowerCase("tr-TR");
 
   const subscriptionLocked = (slot: string) =>
     subscriptionSlots.some(
@@ -789,7 +735,7 @@ export default function Home() {
                   ★ Sizin Sabit Abonelik Saatiniz
                 </div>
               )}
-              {discountEligible && (
+              {selectedSubscriptionPrice && (
                 <div className="mb-6 rounded-xl border border-amber-400 bg-amber-500/20 px-4 py-3 text-amber-800 dark:text-amber-300">
                   <div className="text-sm font-black">
                     <span className="mr-2 text-xl line-through opacity-60">
@@ -813,17 +759,6 @@ export default function Home() {
                 className="flex w-full items-center justify-center gap-2 rounded-full bg-amber-400 px-5 py-4 text-sm font-extrabold text-black transition hover:bg-amber-300"
               >
                 Maç kaydı oluştur <ArrowRight size={17} />
-              </button>
-
-              {/* SABİT HATTAN DOĞRUDAN TEST BUTONU */}
-              <button
-                type="button"
-                disabled={waLoading}
-                onClick={sendTestWhatsApp}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-emerald-600 bg-emerald-950/80 px-4 py-3 text-xs font-bold text-emerald-400 transition hover:bg-emerald-900 disabled:opacity-50"
-              >
-                <MessageCircle size={16} />
-                {waLoading ? "Mesaj Gönderiliyor..." : "Sabit Hattan WhatsApp Testi Gönder (0414 247 51 51)"}
               </button>
 
               {notice && (

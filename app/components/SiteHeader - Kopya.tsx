@@ -25,14 +25,14 @@ export default function SiteHeader() {
     const client = getSupabaseClient();
     const loadUser = async () => {
       const { data } = await client.auth.getUser();
-      setUserName(data.user?.user_metadata?.full_name || "Abdullah BAĞMANCI");
+      setUserName(data.user?.user_metadata?.full_name || "");
     };
     loadUser();
     const { data: listener } = client.auth.onAuthStateChange(
       (_event, session) => {
         setUserName(
           session?.user?.user_metadata?.full_name ||
-            (session ? "Abdullah BAĞMANCI" : ""),
+            "",
         );
         setAccountOpen(false);
       },

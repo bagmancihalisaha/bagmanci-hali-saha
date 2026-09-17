@@ -85,7 +85,7 @@ export default function AccountPage() {
         return;
       }
       setEmail(data.user.email || "");
-      setFullName(data.user.user_metadata?.full_name || "Abdullah BAĞMANCI");
+      setFullName(data.user.user_metadata?.full_name || "");
       const { data: saved, error } = await client
         .from("profiles")
         .select(
@@ -280,7 +280,7 @@ export default function AccountPage() {
         <div className="account-heading">
           <div>
             <p className="account-eyebrow">HESAP MERKEZİ</p>
-            <h1>Merhaba, {fullName || "Abdullah BAĞMANCI"}</h1>
+            <h1>{fullName ? `Merhaba, ${fullName}` : "Hesabım"}</h1>
             <p>
               Profilini, iletişim bilgilerini ve saha aboneliğini buradan yönet.
             </p>
