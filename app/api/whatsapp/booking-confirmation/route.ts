@@ -23,9 +23,16 @@ export async function POST(req: Request) {
 
     const result = await sendBookingConfirmationMessage(booking);
     if (!result.ok) {
+      const metaError = result.data?.error;
+      const errorMessage = metaError?.message || "WhatsApp rezervasyon mesajı gönderilemedi.";
+      const templatePending =
+        String(metaError?.code || "") === "132001" ||
+        errorMessage.toLowerCase().includes("does not exist in the translation");
       return NextResponse.json(
         {
-          error: result.data?.error?.message || "WhatsApp rezervasyon mesajı gönderilemedi.",
+          error: templatePending
+            ? "rezervasyon_onay şablonu Meta tarafından henüz onaylanmamış. WhatsApp Manager'da şablon onaylandıktan sonra tekrar deneyin."
+            : errorMessage,
           details: result.data,
         },
         { status: result.status },
