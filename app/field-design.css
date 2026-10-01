@@ -1,0 +1,186 @@
+/* DESIGN (1).md palette, adapted to the venue with Apple-style glass and motion. */
+.welcome-intro { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; overflow: hidden; background: #122314; color: #fff; }
+.welcome-backdrop { position: absolute; inset: 0 0 0 auto; width: min(76vw, 1500px); height: 100%; object-fit: contain; object-position: right center; }
+.welcome-shade { position: absolute; inset: 0; background: linear-gradient(90deg, #122314 0%, rgb(18 35 20 / 96%) 29%, rgb(18 35 20 / 46%) 58%, rgb(18 35 20 / 12%) 100%); }
+html:has(.welcome-intro), body:has(.welcome-intro) { overflow: hidden !important; overscroll-behavior: none !important; }
+html[data-home-entering] { overflow: hidden !important; scroll-behavior: auto !important; overflow-anchor: none; }
+html[data-home-entering] body { position: fixed !important; inset: 0 !important; width: 100% !important; overflow: hidden !important; }
+.welcome-mark { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 24px; text-align: center; transform: translateX(-18vw); }
+.welcome-mark > svg { color: #68ef3f; }
+.welcome-mark p { font-size: 24px; font-weight: 750; }
+.welcome-mark > span { color: #d9deca; font-size: 16px; }
+.welcome-progress { width: 160px; height: 3px; background: #273f2b; overflow: hidden; border-radius: 4px; }
+.welcome-progress i { display: block; height: 100%; background: #68ef3f; transform-origin: left; }
+@media (prefers-reduced-motion: no-preference) {
+  html body :is(button:not(:disabled), a[href], [role="button"]),
+  html body .home-page.field-design :is(button:not(:disabled), a[href], [role="button"]) { transition: scale 220ms cubic-bezier(.2,.8,.2,1), translate 220ms cubic-bezier(.2,.8,.2,1), filter 220ms ease-out, background-color 220ms ease-out, box-shadow 220ms ease-out !important; }
+  html body :is(button:not(:disabled), a[href], [role="button"]):active { scale: .94; translate: 0 1px; filter: brightness(1.12); }
+  html body :is(button,a) > svg { transition: translate 240ms ease-out, rotate 240ms ease-out; }
+  .field-hero-image { animation: field-breathe 14s ease-in-out infinite alternate; }
+  .field-hero-bottom a svg { animation: field-arrow 1.8s ease-in-out infinite; }
+  @media (hover: hover) {
+    html body :is(button:not(:disabled), a[href], [role="button"]):hover { translate: 0 -3px; scale: 1.025; filter: brightness(1.08); }
+    html body :is(button,a):hover > svg { translate: 3px 0; rotate: -6deg; }
+  }
+}
+@keyframes field-breathe { from { scale: 1; } to { scale: 1.055; } }
+@keyframes field-arrow { 0%,100% { translate: 0 -3px; } 50% { translate: 0 4px; } }
+html .home-page.field-design {
+  --field-forest: #122314;
+  --field-sprout: #68ef3f;
+  --field-ink: #30322a;
+  --field-bone: #f2f5eb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #fff !important;
+  color: var(--field-ink);
+}
+html .home-page.field-design :is(h1,h2,h3,p,span,a,button) { letter-spacing: 0 !important; }
+html .home-page.field-design .site-header {
+  background: rgb(18 35 20 / 88%) !important;
+  border: 1px solid rgb(255 255 255 / 16%) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 8px 32px rgb(0 0 0 / 15%) !important;
+  --text-primary: #fff;
+  --text-secondary: #d9deca;
+  --bg-subtle: #273f2b;
+  --bg-surface: #122314;
+  --border: #7e8371;
+}
+html .home-page.field-design .site-header .header-nav-tab { color: #f2f5eb !important; background: transparent !important; }
+html .home-page.field-design .site-header .header-nav-tab:hover { background: rgb(255 255 255 / 12%) !important; }
+html .home-page.field-design .site-header .header-nav-tab { padding: 8px 12px !important; min-height: 40px; white-space: nowrap; }
+html .home-page.field-design .site-header nav > a span { -webkit-text-fill-color: #f2f5eb !important; }
+html .home-page.field-design .site-header nav > a { color: #68ef3f !important; }
+html .home-page.field-design .field-hero {
+  position: relative; min-height: 640px; overflow: hidden; isolation: isolate;
+  background: #122314; color: #fff;
+}
+.field-hero-image { position: absolute; inset: -100px 0 0; width: 100%; height: calc(100% + 100px); object-fit: cover; object-position: center 55%; z-index: -2; }
+.field-hero-shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgb(9 24 13 / 88%), rgb(9 24 13 / 48%) 55%, rgb(9 24 13 / 8%)); }
+.field-hero-content { width: min(1152px, 92%); margin: 0 auto; padding: 128px 0 48px; }
+.field-location { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; padding: 8px 16px; border: 1px solid rgb(255 255 255 / 28%); border-radius: 40px; color: #f2f5eb; }
+html .home-page.field-design .field-hero h1 { font-size: 56px; line-height: 1.05; font-weight: 750; color: white !important; -webkit-text-fill-color: white !important; margin: 24px 0; }
+html .home-page.field-design .field-hero :is(.field-location,.field-hero-description) { color: #f2f5eb !important; -webkit-text-fill-color: #f2f5eb !important; }
+html .home-page.field-design .site-header :is(nav > a span,nav > a svg,a[aria-label="Müşteri girişi"]) { color: #f2f5eb !important; }
+html .home-page.field-design .field-hero h1 span { display: block; font-size: 32px; line-height: 1.25; margin-top: 16px; color: #68ef3f !important; background: none !important; -webkit-text-fill-color: #68ef3f !important; }
+.field-hero-description { font-size: 18px; line-height: 1.6; color: #f2f5eb; }
+.field-hero-actions { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 32px; }
+html .home-page.field-design .field-hero .apple-button { min-height: 48px; padding: 12px 24px; border-radius: 28px !important; font-size: 14px; gap: 16px; }
+html .home-page.field-design .field-hero .apple-button-primary { background: #68ef3f !important; color: #122314 !important; box-shadow: none !important; border: 1px solid transparent !important; }
+html .home-page.field-design .field-hero .apple-button-secondary { color: white !important; background: rgb(255 255 255 / 6%) !important; border: 1px solid rgb(255 255 255 / 40%) !important; box-shadow: none !important; backdrop-filter: blur(16px); }
+.field-rates { display: flex; gap: 24px; margin-top: 24px; color: #d9deca; font-size: 13px; }
+.field-rates strong { margin-left: 8px; color: #fff; font-weight: 600; }
+.field-hero-bottom { width: min(1152px,92%); margin: 0 auto 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 12px; color: #fff; }
+.field-hero-bottom a { display: flex; align-items: center; gap: 8px; }
+.field-hero-bottom > span { padding: 8px 16px; border: 1px solid rgb(255 255 255 / 30%); border-radius: 40px; background: rgb(255 255 255 / 12%); backdrop-filter: blur(20px); }
+html .home-page.field-design #rezervasyon { padding-top: 64px !important; background: #fff !important; }
+html .home-page.field-design #paketler { background: #f4f5f7 !important; }
+html .home-page.field-design .pricing-card { border-radius: 24px !important; background: #fff !important; border: 1px solid #dcdfe3 !important; box-shadow: none !important; }
+html .home-page.field-design .pricing-card-featured { border-color: #273f2b !important; }
+html .home-page.field-design :is(.home-title,.pricing-card) { color: #30322a !important; }
+html .home-page.field-design .home-title span { color: #273f2b !important; background: none !important; -webkit-text-fill-color: #273f2b !important; }
+html .home-page.field-design .home-kicker { color: #426047 !important; }
+html .home-page.field-design .apple-booking-cta { background: #68ef3f !important; color: #122314 !important; box-shadow: none !important; }
+html.dark .home-page.field-design { background: #111411 !important; }
+html.dark .home-page.field-design #rezervasyon { background: #111411 !important; }
+html.dark .home-page.field-design #paketler { background: #191e19 !important; }
+html.dark .home-page.field-design .pricing-card { background: #122314 !important; color: #fff !important; border-color: #426047 !important; }
+html.dark .home-page.field-design .home-title { color: #fff !important; }
+html.dark .home-page.field-design .home-title span { color: #68ef3f !important; -webkit-text-fill-color: #68ef3f !important; }
+html.dark .home-page.field-design .home-kicker { color: #b7bda5 !important; }
+.field-design :is(a,button,input,select):focus-visible { outline: 3px solid #26a200; outline-offset: 4px; }
+@media (min-width: 1600px) { .field-hero-content { padding-top: 176px; } }
+@media (max-width: 767px) {
+  .welcome-intro { z-index: 9999; min-height: 100svh; min-height: 100dvh; touch-action: none; }
+  .welcome-backdrop { inset: 0; width: 100%; object-fit: cover; object-position: 34% center; }
+  .welcome-shade { background: linear-gradient(0deg, rgb(18 35 20 / 82%), rgb(18 35 20 / 20%) 80%), linear-gradient(90deg, rgb(18 35 20 / 36%), transparent); }
+  .welcome-mark { gap: 20px; transform: none; text-shadow: 0 2px 24px rgb(0 0 0 / 65%); }
+  .welcome-mark p { font-size: 20px; }
+  html .home-page.field-design .schedule-row-scroll { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; grid-template-rows: none !important; grid-auto-flow: row !important; gap: 8px; overflow: visible !important; }
+  html .home-page.field-design .schedule-row-scroll .schedule-slot { min-width: 0 !important; width: 100% !important; font-size: 12px; }
+  html .home-page.field-design .field-hero { min-height: 660px; }
+  .field-hero-content { padding-top: 128px; padding-bottom: 56px; }
+  html .home-page.field-design .field-hero h1 { font-size: 44px; }
+  html .home-page.field-design .field-hero h1 span { font-size: 26px; }
+  .field-hero-actions { flex-direction: column; align-items: stretch; }
+  .field-hero-actions .apple-button { width: 100%; justify-content: space-between; }
+  .field-rates { gap: 16px; font-size: 12px; }
+  .field-hero-shade { background: rgb(9 24 13 / 68%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  .field-design *, .field-design *::before, .field-design *::after { animation: none !important; transition: none !important; }
+}
+html:not(.dark) .home-page.field-design .home-muted,
+html:not(.dark) .home-page.field-design .schedule-row-label,
+html:not(.dark) .home-page.field-design .schedule-days .home-chip,
+html:not(.dark) .home-page.field-design .schedule-days .home-chip span,
+html:not(.dark) .home-page.field-design .booking-form-card .home-muted { color: #475569 !important; }
+html:not(.dark) .home-page.field-design .schedule-days,
+html:not(.dark) .home-page.field-design .home-booking-shell,
+html:not(.dark) .home-page.field-design .booking-form-card { color: #1d1d1f !important; border-color: #cbd5e1 !important; }
+html:not(.dark) .home-page.field-design .home-input { color: #1d1d1f !important; border-color: #94a3b8 !important; }
+
+/* Booking selection states must win over the older light/dark surface rules. */
+#rezervasyon .schedule-slot { isolation: isolate; overflow: hidden; min-height: 76px; border-radius: 18px !important; }
+#rezervasyon .schedule-slot > :is(span:not(.slot-feedback), i, small) { position: relative; z-index: 1; }
+html:not(.dark) #rezervasyon .schedule-daytime .schedule-slot:not(:disabled) { background: #edf8f5 !important; border-color: #c6e6db !important; color: #193d32 !important; }
+html:not(.dark) #rezervasyon .schedule-nighttime .schedule-slot:not(:disabled) { background: #f1f2fb !important; border-color: #d8daf0 !important; color: #343459 !important; }
+html:not(.dark) #rezervasyon .schedule-daytime .schedule-row-label { color: #916000 !important; }
+html:not(.dark) #rezervasyon .schedule-nighttime .schedule-row-label { color: #5853a0 !important; }
+
+.otp-send-button {
+  border: 1px solid #059669;
+  background: #ecfdf5;
+  color: #047857;
+  box-shadow: 0 8px 18px rgb(16 185 129 / 12%);
+}
+.otp-send-button:hover { background: #d1fae5; transform: translateY(-1px); }
+.otp-panel {
+  border-color: rgb(16 185 129 / 28%);
+  background: linear-gradient(145deg, rgb(236 253 245 / 95%), rgb(240 253 250 / 92%));
+  color: #064e3b;
+  box-shadow: 0 12px 28px rgb(16 185 129 / 10%);
+  animation: otp-panel-in .28s ease-out both;
+}
+.otp-code-input {
+  border: 1px solid #a7f3d0;
+  background: #ffffff;
+  color: #064e3b;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%);
+}
+.otp-code-input:focus { border-color: #059669; box-shadow: 0 0 0 4px rgb(16 185 129 / 14%); }
+.otp-countdown, .otp-resend-button { color: #047857; }
+.otp-verified { display: flex; align-items: center; gap: 8px; border-color: #6ee7b7; background: #ecfdf5; color: #047857; }
+.otp-error-text { color: #b42318; }
+.otp-input-error { border-color: #ef4444; animation: otp-shake .36s ease-in-out; }
+@keyframes otp-panel-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes otp-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+html.dark .otp-send-button { border-color: #34d399; background: #052e1b; color: #a7f3d0; }
+html.dark .otp-panel { border-color: rgb(52 211 153 / 35%); background: linear-gradient(145deg, #09261b, #102e24); color: #d1fae5; }
+html.dark .otp-code-input { border-color: #34d399; background: #071c14; color: #d1fae5; }
+html.dark .otp-countdown, html.dark .otp-resend-button { color: #6ee7b7; }
+html.dark .otp-verified { border-color: #34d399; background: #09261b; color: #a7f3d0; }
+html.dark .otp-error-text { color: #fca5a5; }
+#rezervasyon .schedule-row-label svg { width: 28px; height: 28px; padding: 5px; border-radius: 8px; background: rgb(133 143 158 / 10%); }
+html.dark #rezervasyon .schedule-daytime .schedule-slot:not(:disabled) { background: #172e28 !important; border-color: #315448 !important; }
+html.dark #rezervasyon .schedule-nighttime .schedule-slot:not(:disabled) { background: #242536 !important; border-color: #454660 !important; }
+html #rezervasyon .schedule-row .schedule-slot.schedule-slot-selected:not(:disabled) {
+  background: linear-gradient(145deg, #087f64, #075443) !important;
+  border-color: #0b886b !important; color: #fff !important;
+  box-shadow: 0 8px 20px rgb(7 102 78 / 25%), inset 0 1px 0 rgb(255 255 255 / 28%) !important;
+}
+html #rezervasyon .schedule-slot.schedule-slot-selected :is(span,i,small) { color: #fff !important; -webkit-text-fill-color: #fff !important; }
+html #rezervasyon .schedule-days .home-chip-active { background: #087f64 !important; border-color: #087f64 !important; box-shadow: 0 6px 16px rgb(7 102 78 / 18%) !important; }
+html #rezervasyon .schedule-days .home-chip-active span { color: #fff !important; -webkit-text-fill-color: #fff !important; }
+html #rezervasyon .schedule-slot-vip:not(.schedule-slot-selected) { border-color: #b88722 !important; }
+.slot-feedback { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.slot-selection-check { position: absolute; top: 6px; left: 6px; padding: 2px; width: 17px; height: 17px; border-radius: 50%; color: #fff; background: rgb(255 255 255 / 20%); }
+.slot-selection-wave { position: absolute; inset: 0; border: 2px solid rgb(255 255 255 / 65%); border-radius: inherit; opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .slot-selection-wave { animation: slot-wave 550ms ease-out both; }
+  .slot-selection-check { animation: slot-check 420ms cubic-bezier(.18,.9,.3,1.35) both; }
+}
+@keyframes slot-wave { from { opacity: .85; transform: scale(.35); background: rgb(255 255 255 / 35%); } to { opacity: 0; transform: scale(1.3); background: transparent; } }
+@keyframes slot-check { from { opacity: 0; transform: scale(.4) rotate(-35deg); } to { opacity: 1; transform: scale(1) rotate(0); } }

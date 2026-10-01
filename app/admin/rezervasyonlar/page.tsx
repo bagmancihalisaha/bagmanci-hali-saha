@@ -56,7 +56,7 @@ const days = [
 ];
 const statusLabels: Record<string, string> = {
   paid: "Tamamı Ödendi",
-  approved: "Tamamı Ödendi",
+  approved: "Onaylandı",
   deposit: "Kapora",
   proof_submitted: "Kapora",
   unpaid: "Ödenmedi",
@@ -89,6 +89,7 @@ export default function AdminBookingsPage() {
   const [bookingPaymentStatus, setBookingPaymentStatus] = useState("unpaid");
   const [bookingDeposit, setBookingDeposit] = useState("");
   const [savingBooking, setSavingBooking] = useState(false);
+  const [bookingActionMessage, setBookingActionMessage] = useState("");
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [manualBooking, setManualBooking] = useState<ManualBooking>({ booking_date: "", booking_time: "", customer_name: "", phone: "", total_amount: "1800", payment_status: "unpaid", notes: "" });
   const [savingManual, setSavingManual] = useState(false);
@@ -162,25 +163,55 @@ export default function AdminBookingsPage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const sendWhatsAppConfirmation = async (booking: Booking) => {
+  const sendBookingAction = async (action: "approve" | "reminder") => {
+    if (!selectedBooking || selectedBooking.id.startsWith("subscription-")) return;
+    let approved = false;
+    setBookingActionMessage("");
+    setSavingBooking(true);
     try {
-      const res = await fetch("/api/whatsapp/booking-confirmation", {
+      const { data: sessionData } = await getSupabaseClient().auth.getSession();
+      const response = await fetch("/api/whatsapp/booking-confirmation", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId: booking.id }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionData.session?.access_token
+            ? { Authorization: `Bearer ${sessionData.session.access_token}` }
+            : {}),
+        },
+        body: JSON.stringify({ bookingId: selectedBooking.id, action }),
       });
-      const result = await res.json();
-      setMessage(
-        res.ok
-          ? `${booking.customer_name} için WhatsApp rezervasyon mesajı gönderildi.`
-          : `WhatsApp gönderilemedi: ${result.error || "Bilinmeyen hata"}`,
-      );
+      const result = await response.json();
+      if (action === "approve" && result.approved) {
+        approved = true;
+        const approvedBooking = { ...selectedBooking, payment_status: "approved" };
+        setSelectedBooking(approvedBooking);
+        setBookings((current) =>
+          current.map((booking) =>
+            booking.id === approvedBooking.id ? approvedBooking : booking,
+          ),
+        );
+      }
+      if (!response.ok || !result.success) {
+        const code = result.metaCode ? ` (Meta ${result.metaCode})` : "";
+        throw new Error(`${result.error || "WhatsApp mesajı gönderilemedi."}${code}`);
+      }
+      const successMessage =
+        action === "approve"
+          ? `${selectedBooking.customer_name} rezervasyonu onaylandı ve WhatsApp mesajı gönderildi.`
+          : `${selectedBooking.customer_name} için WhatsApp hatırlatması gönderildi.`;
+      setBookingActionMessage(successMessage);
+      setMessage(successMessage);
     } catch (error) {
-      setMessage(
-        `WhatsApp gönderilemedi: ${
-          error instanceof Error ? error.message : "Bağlantı hatası"
-        }`,
-      );
+      const errorMessage =
+        approved
+          ? `Rezervasyon onaylandı ancak WhatsApp mesajı gönderilemedi: ${error instanceof Error ? error.message : "Bağlantı hatası"}`
+          : error instanceof Error
+            ? error.message
+            : "WhatsApp mesajı gönderilemedi.";
+      setBookingActionMessage(errorMessage);
+      setMessage(errorMessage);
+    } finally {
+      setSavingBooking(false);
     }
   };
 
@@ -188,7 +219,16 @@ export default function AdminBookingsPage() {
     setSelectedBooking(booking);
     setBookingAmount(String(booking.total_amount ?? 0));
     setBookingDeposit(String(booking.deposit_amount ?? 0));
-    setBookingPaymentStatus(booking.payment_status);
+    setBookingPaymentStatus(
+      booking.payment_status === "paid" ||
+        (Number(booking.total_amount) > 0 &&
+          Number(booking.paid_amount || 0) >= Number(booking.total_amount))
+        ? "paid"
+        : Number(booking.paid_amount || 0) > 0 ||
+            ["deposit", "proof_submitted"].includes(booking.payment_status)
+          ? "deposit"
+          : "unpaid",
+    );
     setCopiedPhone(false);
   };
 
@@ -336,19 +376,7 @@ export default function AdminBookingsPage() {
     if (error) { setMessage(error.message); return; }
     setBookings((current) => [...current, data]);
     setManualOpen(false);
-    if (["paid", "approved", "deposit"].includes(data.payment_status)) {
-      try {
-        const res = await fetch("/api/whatsapp/booking-confirmation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookingId: data.id }),
-        });
-        const result = await res.json();
-        setMessage(res.ok ? "Manuel rezervasyon kaydedildi ve WhatsApp onay mesajı gönderildi." : `Manuel rezervasyon kaydedildi. WhatsApp gönderilemedi: ${result.error || "Bilinmeyen hata"}`);
-      } catch (error) {
-        setMessage(`Manuel rezervasyon kaydedildi. WhatsApp gönderilemedi: ${error instanceof Error ? error.message : "Bağlantı hatası"}`);
-      }
-    }
+    setMessage("Manuel rezervasyon kaydedildi.");
   };
 
   if (!authorized)
@@ -383,11 +411,11 @@ export default function AdminBookingsPage() {
               Rezervasyonlar
             </h1>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
-            <span className="rounded-lg bg-white/80 px-2.5 py-1 text-xs font-semibold text-[var(--muted)] shadow-sm">
+          <div className="reservation-toolbar flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+            <span className="reservation-week-range rounded-lg bg-white/80 px-2.5 py-1 text-xs font-semibold text-[var(--muted)] shadow-sm">
               {dateText(weekStart)} - {dateText(new Date(weekStart.getTime() + 6 * 86400000))}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="reservation-week-actions flex items-center gap-2">
               <strong className="reservation-clock">{clock}</strong>
               <div className="flex gap-1.5">
                 <button
@@ -521,7 +549,7 @@ export default function AdminBookingsPage() {
                         else if (locked) openSubscriptionDetails(locked, date, hour.slice(0, 5).replace(".", ":"));
                         else if (!booking) openManual(date, hour.slice(0, 5).replace(".", ":"));
                       }}
-                      className={`reservation-cell relative group ${current ? "reservation-cell-current" : ""} ${booking ? "reservation-cell-booked" : ""} ${booking?.subscriber || (subscription && !booking) ? "reservation-cell-subscriber" : ""}`}
+                      className={`reservation-cell relative group ${current ? "reservation-cell-current" : ""} ${booking || (subscription && !booking) ? "reservation-cell-occupied" : ""} ${booking ? "reservation-cell-booked" : ""} ${booking?.subscriber || (subscription && !booking) ? "reservation-cell-subscriber" : ""}`}
                     >
                       {booking && (
                         <>
@@ -566,10 +594,10 @@ export default function AdminBookingsPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => sendWhatsAppConfirmation(booking)}
+                  onClick={() => openBookingDetails(booking)}
                   className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-700"
                 >
-                  <MessageCircle size={14} /> WhatsApp
+                  <MessageCircle size={14} /> Detay
                 </button>
               </div>
             )) : <p className="admin-day-record-empty">Bu gün için kayıt bulunmuyor.</p>}
@@ -606,7 +634,7 @@ export default function AdminBookingsPage() {
           <div className="booking-detail-status"><span className={`booking-status booking-status-${selectedBooking.payment_status}`}>{statusLabels[selectedBooking.payment_status] || selectedBooking.payment_status}</span><span>{selectedBooking.booking_date}</span></div>
           <section className="booking-detail-section"><h3>Müşteri bilgileri</h3><div className="booking-customer"><div className="booking-avatar">{selectedBooking.customer_name.slice(0, 1).toUpperCase()}</div><div><strong>{selectedBooking.customer_name}</strong><span>{selectedBooking.subscriber ? "Abone" : "Tek Seferlik"}</span></div></div><div className="booking-phone-row"><a href={`tel:${selectedBooking.phone}`}><Phone size={16} /> {selectedBooking.phone}</a><button type="button" onClick={copyPhone}>{copiedPhone ? <Check size={16} /> : <Copy size={16} />} {copiedPhone ? "Kopyalandı" : "Kopyala"}</button></div></section>
           <section className="booking-detail-section"><h3>Ödeme yönetimi</h3><div className="booking-detail-fields"><label>Toplam ücret<input type="number" min="0" value={bookingAmount} onChange={(event) => setBookingAmount(event.target.value)} /></label><label>Ödeme durumu<select value={bookingPaymentStatus} onChange={(event) => setBookingPaymentStatus(event.target.value)}><option value="paid">Tamamı Ödendi</option><option value="unpaid">Ödenmedi</option><option value="deposit">Kapora Alındı</option></select></label>{bookingPaymentStatus === "deposit" && <label className="booking-detail-field-wide">Alınan kapora tutarı<input type="number" min="0" max={bookingAmount || undefined} value={bookingDeposit} onChange={(event) => setBookingDeposit(event.target.value)} /></label>}</div><div className={`booking-remaining ${bookingPaymentStatus === "paid" ? "booking-remaining-paid" : ""}`}>{bookingPaymentStatus === "paid" ? <>Kalan: ₺0 <span>(Tamamlandı)</span></> : <>Kalan Tutar: ₺{Math.max(0, Number(bookingAmount || 0) - (bookingPaymentStatus === "deposit" ? Number(bookingDeposit || 0) : 0)).toLocaleString("tr-TR")} <span>({bookingPaymentStatus === "deposit" ? "Ödenmedi" : "Tamamı Ödenmedi"})</span></>}</div><button type="button" className="booking-primary-button" onClick={updateBookingPayment} disabled={savingBooking || selectedBooking.id.startsWith("subscription-")}><Save size={16} /> {selectedBooking.id.startsWith("subscription-") ? "Abonelik kaydı" : savingBooking ? "Kaydediliyor..." : "Ödemeyi Güncelle"}</button></section>
-          <section className="booking-detail-actions"><button type="button" className="booking-whatsapp-button" onClick={() => sendWhatsAppConfirmation(selectedBooking)}><MessageCircle size={17} /> WhatsApp Onay / Hatırlatma Gönder</button><button type="button" className="booking-delete-button" onClick={deleteBooking} disabled={savingBooking}><Trash2 size={16} /> Rezervasyonu İptal Et / Sil</button></section>
+          <section className="booking-detail-actions">{bookingActionMessage && <p role="status" className={`booking-action-feedback ${bookingActionMessage.includes("gönderilemedi") || bookingActionMessage.includes("Meta ") ? "booking-action-feedback-error" : ""}`}>{bookingActionMessage}</p>}<button type="button" className="booking-whatsapp-button" onClick={() => sendBookingAction("approve")} disabled={savingBooking || selectedBooking.id.startsWith("subscription-")}><Check size={17} /> {savingBooking ? "Gönderiliyor..." : "Rezervasyonu Onayla ve WhatsApp Gönder"}</button><button type="button" className="booking-whatsapp-button" onClick={() => sendBookingAction("reminder")} disabled={savingBooking || selectedBooking.id.startsWith("subscription-")}><MessageCircle size={17} /> Hatırlatma Mesajı Gönder</button><button type="button" className="booking-delete-button" onClick={deleteBooking} disabled={savingBooking}><Trash2 size={16} /> Rezervasyonu İptal Et / Sil</button></section>
         </div></div>}
         
       </div>

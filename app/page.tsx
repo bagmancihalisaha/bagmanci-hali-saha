@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion, MotionConfig } from "framer-motion";
+import FieldHero from "./components/FieldHero";
+import WelcomeIntro from "./components/WelcomeIntro";
 import {
   ArrowRight,
   CalendarDays,
@@ -13,11 +16,13 @@ import {
   Mail,
   MapPin,
   Phone,
+  Play,
   Users,
 } from "lucide-react";
 import SiteHeader from "./components/SiteHeader";
 import SiteImageSync from "./components/SiteImageSync";
 import MatchArchive from "./components/MatchArchive";
+import AppleButton from "./components/AppleButton";
 import { getSupabaseClient } from "../lib/supabase";
 
 const getWeekDays = (offset: number) => {
@@ -117,6 +122,7 @@ export default function Home() {
     new Date().toISOString().slice(0, 10),
   );
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [slotFeedback, setSlotFeedback] = useState(0);
   const [selectedPackage, setSelectedPackage] = useState(packages[0]);
   const [selectedDuration, setSelectedDuration] = useState(1);
   const [durationNotice, setDurationNotice] = useState("");
@@ -127,6 +133,12 @@ export default function Home() {
     SubscriptionSlot[]
   >([]);
   const [form, setForm] = useState({ name: "", phone: "", subscriber: false });
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [otpSeconds, setOtpSeconds] = useState(0);
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [otpError, setOtpError] = useState("");
   const [subscriberVerified, setSubscriberVerified] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [profileDefaults, setProfileDefaults] = useState({
@@ -134,6 +146,14 @@ export default function Home() {
     phone: "",
   });
   const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    if (otpSeconds <= 0) return;
+    const timer = window.setInterval(() => {
+      setOtpSeconds((value) => Math.max(0, value - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [otpSeconds]);
 
   const selectedLabel =
     days.find((day) => day.date === selectedDay)?.full ?? selectedDay;
@@ -253,6 +273,62 @@ export default function Home() {
       ?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const sendOtp = async () => {
+    const phone = form.phone.replace(/\s/g, "");
+    if (!form.name.trim() || !/^0\d{10}$/.test(phone)) {
+      setOtpError("Önce ad soyad ve geçerli telefon numaranızı girin.");
+      return;
+    }
+    setOtpBusy(true);
+    setOtpError("");
+    try {
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Kod gönderilemedi.");
+      setOtpSent(true);
+      setPhoneVerified(false);
+      setOtpCode("");
+      setOtpSeconds(60);
+      setNotice("Doğrulama kodu WhatsApp üzerinden gönderildi.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Kod gönderilemedi.";
+      setOtpError(message);
+      setNotice(message);
+    } finally {
+      setOtpBusy(false);
+    }
+  };
+
+  const verifyOtp = async (value = otpCode) => {
+    const code = value.replace(/\D/g, "").slice(0, 6);
+    if (code.length !== 6) return false;
+    setOtpBusy(true);
+    setOtpError("");
+    try {
+      const response = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: form.phone, code }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Hatalı veya süresi dolmuş kod.");
+      setPhoneVerified(true);
+      setOtpError("");
+      setNotice("Telefon numaranız doğrulandı. Rezervasyonunuzu tamamlayabilirsiniz.");
+      return true;
+    } catch (error) {
+      setPhoneVerified(false);
+      setOtpError(error instanceof Error ? error.message : "Hatalı veya süresi dolmuş kod.");
+      return false;
+    } finally {
+      setOtpBusy(false);
+    }
+  };
+
   const submitBooking = async () => {
     if (
       !selectedSlot ||
@@ -261,6 +337,14 @@ export default function Home() {
     ) {
       setNotice("Lütfen saat, ad soyad ve 11 haneli telefon numarasını girin.");
       return;
+    }
+    if (!phoneVerified) {
+      if (!otpSent) {
+        await sendOtp();
+        return;
+      }
+      const verified = await verifyOtp();
+      if (!verified) return;
     }
     setNotice("Maç kaydı oluşturuluyor...");
     try {
@@ -292,22 +376,16 @@ export default function Home() {
       }
       const data = result.booking;
 
-      const whatsappResponse = await fetch("/api/whatsapp/booking-confirmation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId: data.id }),
-      });
-      const whatsappResult = await whatsappResponse.json();
-      if (!whatsappResponse.ok || !whatsappResult.success) {
-        console.error("Rezervasyon WhatsApp onayı gönderilemedi:", whatsappResult);
-      }
-
       setBooked((current) => [
         ...current,
         { date: selectedDay, time: selectedSlot, duration: selectedDuration },
       ]);
       setSelectedSlot(null);
       setForm({ name: "", phone: "", subscriber: false });
+      setOtpCode("");
+      setOtpSent(false);
+      setPhoneVerified(false);
+      setOtpSeconds(0);
       window.location.href = `/odeme?booking=${data.id}&token=${data.payment_token}`;
     } catch (error) {
       setNotice(
@@ -419,11 +497,16 @@ export default function Home() {
     const endSlot = `${String((slotHour + 1) % 24).padStart(2, "0")}:00`;
 
     return (
-      <button
+      <motion.button
         key={slot}
         type="button"
         disabled={isLocked}
+        aria-pressed={!isLocked && selectedSlot === slot}
+        whileHover={isLocked ? undefined : { scale: 1.02 }}
+        whileTap={isLocked ? undefined : { scale: 0.96 }}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
         onClick={() => {
+          setSlotFeedback((value) => value + 1);
           setSelectedSlot(slot);
           if (
             selectedDuration > 1 &&
@@ -447,6 +530,12 @@ export default function Home() {
         }}
         className={`schedule-slot ${isSubscriptionSlot ? "schedule-slot-vip" : ""} ${isLocked ? "schedule-slot-locked" : selectedSlot === slot ? "schedule-slot-selected" : ""}`}
       >
+        {!isLocked && selectedSlot === slot && (
+          <span key={slotFeedback} className="slot-feedback" aria-hidden="true">
+            <span className="slot-selection-wave" />
+            <Check className="slot-selection-check" size={13} strokeWidth={3} />
+          </span>
+        )}
         {isSubscriptionSlot && <Crown className="schedule-slot-crown text-amber-400" size={15} />}
         {isSubscriptionLocked && !isOwnSubscription ? (
           <>
@@ -467,76 +556,27 @@ export default function Home() {
             <span className="font-semibold">{endSlot}</span>
           </>
         )}
-      </button>
+      </motion.button>
     );
   };
 
   return (
-    <main id="top" className="home-page flex flex-col min-h-screen bg-[var(--cream)] text-[var(--ink)]">
+    <MotionConfig reducedMotion="user">
+    <WelcomeIntro />
+    <main id="top" className="home-page field-design flex flex-col min-h-screen bg-[var(--cream)] text-[var(--ink)]">
       <SiteHeader />
       <SiteImageSync />
 
-      {/* 1. KESİN SIRALAMA: EN TEPEDE HERO VİTRİNİ (order-1) */}
-      <section className="order-1 home-section noise field-lines relative flex min-h-[720px] items-center overflow-hidden bg-[#051811] px-5 pb-16 pt-36 lg:min-h-[820px] lg:px-8">
-        <div className="mx-auto grid w-full max-w-[1240px] items-end gap-12 lg:grid-cols-[1.05fr_.95fr] lg:gap-16">
-          <div className="relative z-10 max-w-[680px]">
-            <div className="mb-6 flex items-center gap-2.5 rounded-full border border-emerald-700/60 bg-emerald-950/80 px-4 py-1.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md w-fit">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />{" "}
-              Bağmancı Halı Saha · Şanlıurfa
-            </div>
-            <h1 className="display max-w-[680px] text-[clamp(3.8rem,8vw,7.5rem)] font-extrabold leading-[.9] text-white">
-              Maçın adresi <span className="text-emerald-400">belli.</span>
-            </h1>
-            <p className="mt-8 max-w-[470px] text-lg font-medium leading-8 text-white/90">
-              Takımını topla, paketi seç, sahanı ayırt. Gündüz tarifesi 1200 TL,
-              gece tarifesi 1800 TL.
-            </p>
-            <div className="mt-9 flex items-center gap-4">
-              <a
-                href="#paketler"
-                className="inline-flex items-center gap-3 rounded-full bg-amber-400 px-7 py-4 text-sm font-extrabold text-black shadow-lg shadow-amber-400/20 transition hover:bg-amber-300"
-              >
-                Paket seç <ArrowRight size={18} />
-              </a>
-              <a
-                href="#rezervasyon"
-                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-4 text-sm font-bold text-white backdrop-blur-md transition hover:bg-white/20"
-              >
-                Hemen Randevu Al
-              </a>
-            </div>
-          </div>
-          <div className="relative mx-auto w-full max-w-[500px] lg:mb-[-55px]">
-            <div className="home-photo-card relative aspect-[4/5] overflow-hidden rounded-[180px_180px_18px_18px] border-[10px] border-emerald-900/40 shadow-2xl">
-              <img
-                className="h-full w-full object-cover"
-                src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=900&q=85"
-                alt="Bağmancı Halı Saha"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#051811]/90 via-transparent to-transparent" />
-            </div>
-            <div className="home-stat-card absolute -bottom-7 -left-5 flex items-center gap-3.5 rounded-2xl border border-emerald-700/50 bg-[#07241a]/95 p-4 shadow-2xl backdrop-blur-md sm:-left-10">
-              <div className="flex -space-x-2">
-                <span className="h-9 w-9 rounded-full border-2 border-amber-400 bg-cover" style={{ backgroundImage: "url('https://i.pravatar.cc/80?img=12')" }} />
-                <span className="h-9 w-9 rounded-full border-2 border-amber-400 bg-cover" style={{ backgroundImage: "url('https://i.pravatar.cc/80?img=32')" }} />
-                <span className="h-9 w-9 rounded-full border-2 border-amber-400 bg-cover" style={{ backgroundImage: "url('https://i.pravatar.cc/80?img=13')" }} />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-white/70">Bu hafta sahada</p>
-                <p className="font-extrabold text-amber-400">120+ oyuncu</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="absolute bottom-7 left-5 hidden items-center gap-3 text-xs font-semibold text-white/60 lg:flex">
-          <span className="h-px w-10 bg-amber-400/40" /> Şanlıurfa · Bağmancı
-        </div>
-      </section>
+      <FieldHero />
 
-      {/* 2. KESİN SIRALAMA: TARİFELER (order-2) */}
-      <section
+      {/* 3. KESİN SIRALAMA: TARİFELER (order-3) */}
+      <motion.section
         id="paketler"
-        className="order-2 home-section scroll-mt-32 px-5 py-20 lg:px-8 lg:py-28"
+        className="order-3 home-section scroll-mt-32 px-5 py-20 lg:px-8 lg:py-28"
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.12 }}
+        transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="mx-auto max-w-[1240px]">
           <div className="mb-10 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
@@ -556,8 +596,10 @@ export default function Home() {
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             {packages.map((pack, index) => (
-              <article
+              <motion.article
                 key={pack.title}
+                whileHover={{ y: -5 }}
+                transition={{ type: "spring", stiffness: 300, damping: 24 }}
                 className={`pricing-card relative rounded-3xl border p-7 transition ${index === 1 ? "pricing-card-featured md:-translate-y-3" : ""}`}
               >
                 <p
@@ -584,22 +626,30 @@ export default function Home() {
                   />{" "}
                   {pack.detail}
                 </p>
-                <button
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   onClick={() => choosePackage(pack)}
                   className={`flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold transition ${index === 1 ? "bg-amber-400 text-black hover:bg-amber-300" : "home-ghost-button"}`}
                 >
                   Paketi seç <ArrowRight size={16} />
-                </button>
-              </article>
+                </motion.button>
+              </motion.article>
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* 3. KESİN SIRALAMA: REZERVASYON TAKVİMİ (order-3) */}
-      <section
+      {/* 2. KESİN SIRALAMA: REZERVASYON TAKVİMİ (order-2) */}
+      <motion.section
         id="rezervasyon"
-        className="order-3 home-section scroll-mt-32 px-5 py-20 lg:px-8 lg:py-28"
+        className="order-2 home-section scroll-mt-32 px-5 pb-20 pt-4 lg:px-8 lg:pb-24 lg:pt-8"
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.08 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="mx-auto max-w-[1240px]">
           <div className="mb-10">
@@ -614,7 +664,7 @@ export default function Home() {
               <span>maça başla.</span>
             </h2>
           </div>
-          <div className="home-booking-shell grid min-w-0 overflow-visible rounded-[28px] lg:grid-cols-[1.4fr_.8fr]">
+          <div className="home-booking-shell grid min-w-0 overflow-visible rounded-3xl lg:grid-cols-[1.4fr_.8fr]">
             <div className="min-w-0 p-5 sm:p-8">
               <div className="mb-7 flex items-center justify-between">
                 <div>
@@ -638,9 +688,9 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-              <div className="schedule-days touch-pan-x scrollbar-none mb-6">
+              <div className="schedule-days">
                 {days.map((item) => (
-                  <button
+                  <motion.button
                     key={item.date}
                     disabled={
                       weekOffset === 0 &&
@@ -651,31 +701,35 @@ export default function Home() {
                       setSelectedSlot(null);
                       setNotice("");
                     }}
-                    className={`min-w-[68px] flex-shrink-0 rounded-2xl border p-3 text-center transition ${weekOffset === 0 && item.date < new Date().toISOString().slice(0, 10) ? "home-chip-disabled cursor-not-allowed" : selectedDay === item.date ? "border-amber-400 bg-amber-400 text-black font-extrabold shadow-[0_0_15px_rgba(251,191,36,0.3)]" : "home-chip hover:border-amber-400/50"}`}
+                    whileHover={weekOffset === 0 && item.date < new Date().toISOString().slice(0, 10) ? undefined : { scale: 1.02 }}
+                    whileTap={weekOffset === 0 && item.date < new Date().toISOString().slice(0, 10) ? undefined : { scale: 0.96 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className={`relative min-w-0 rounded-2xl border px-2 py-3 text-center transition ${weekOffset === 0 && item.date < new Date().toISOString().slice(0, 10) ? "home-chip-disabled pointer-events-none opacity-40" : selectedDay === item.date ? "home-chip-active" : "home-chip hover:border-amber-400/50"}`}
                   >
-                    <span className="mt-1 block text-xs font-semibold opacity-60">
+                    {selectedDay === item.date && <motion.span layoutId="day-activeIndicator" className="absolute inset-0 -z-0 rounded-2xl bg-white/[0.12] shadow-[0_0_24px_rgba(52,211,153,0.2)]" />}
+                    <span className="relative z-10 block text-xs font-medium text-[var(--text-secondary)]">
                       {item.day}
                     </span>
-                    <span className="mt-1 block text-lg font-extrabold">
+                    <span className="relative z-10 mt-1 block text-base font-bold text-[var(--text-primary)] sm:text-lg">
                       {item.dayNumber}
                     </span>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
-              <div className="schedule-row">
-                <div className="schedule-row-label">GÜNDÜZ</div>
+              <div className="schedule-row schedule-daytime">
+                <div className="schedule-row-label"><Clock3 size={15} /> Gündüz Tarifesi</div>
                 <div className="schedule-row-scroll touch-pan-x scrollbar-none">
                   {daytimeSlots.map(renderSlot)}
                 </div>
               </div>
-              <div className="schedule-row">
-                <div className="schedule-row-label">GECE</div>
+              <div className="schedule-row schedule-nighttime">
+                <div className="schedule-row-label"><Crown size={15} /> Gece Tarifesi</div>
                 <div className="schedule-row-scroll touch-pan-x scrollbar-none">
                   {nighttimeSlots.map(renderSlot)}
                 </div>
               </div>
             </div>
-            <div className="booking-form-card mx-0 box-border w-full min-w-0 rounded-2xl border-t border-[var(--line)] p-4 sm:rounded-none sm:border-l sm:border-t-0 sm:p-8">
+            <div className="booking-form-card mx-0 box-border w-full min-w-0 rounded-3xl border border-[var(--border)] p-6 shadow-2xl lg:rounded-l-none lg:border-l lg:p-8">
               <div className="mb-8 flex items-center gap-3">
                 <CalendarDays className="text-amber-500" />
                 <div>
@@ -689,14 +743,18 @@ export default function Home() {
                 <p className="mb-2 text-sm font-semibold">Maç süresi</p>
                 <div className="grid grid-cols-3 gap-2">
                   {[1, 1.5, 2].map((duration) => (
-                    <button
+                    <motion.button
                       key={duration}
                       type="button"
                       onClick={() => selectDuration(duration)}
-                      className={`rounded-xl border px-3 py-3 text-sm font-extrabold transition ${selectedDuration === duration ? "border-amber-400 bg-amber-400 text-black" : "home-chip hover:border-amber-400/40"}`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.96 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      className={`relative rounded-xl border px-3 py-3 text-sm font-extrabold transition ${selectedDuration === duration ? "home-chip-active" : "home-chip hover:border-emerald-400/40"}`}
                     >
+                      {selectedDuration === duration && <motion.span layoutId="duration-activeIndicator" className="absolute inset-0 -z-0 rounded-xl bg-emerald-400/15 shadow-[0_0_20px_rgba(52,211,153,0.18)]" />}
                       {duration === 1.5 ? "1,5 saat" : `${duration} saat`}
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
                 {durationNotice && (
@@ -720,16 +778,85 @@ export default function Home() {
                 Telefon
                 <input
                   value={form.phone}
+                  disabled={otpSent && !phoneVerified}
                   onChange={(event) =>
-                    setForm({
-                      ...form,
-                      phone: event.target.value.replace(/\D/g, "").slice(0, 11),
-                    })
+                    (() => {
+                      setForm({
+                        ...form,
+                        phone: event.target.value.replace(/\D/g, "").slice(0, 11),
+                      });
+                      setOtpSent(false);
+                      setPhoneVerified(false);
+                      setOtpCode("");
+                      setOtpError("");
+                    })()
                   }
                   className="home-input mt-2 w-full rounded-xl px-4 py-3 outline-none focus:border-amber-400"
                   placeholder="05xx xxx xx xx"
                 />
               </label>
+              {!otpSent && !phoneVerified && (
+                <>
+                  <button
+                    type="button"
+                    onClick={sendOtp}
+                    disabled={otpBusy}
+                    className="otp-send-button mb-2 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-extrabold transition disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {otpBusy ? "Kod gönderiliyor..." : "Doğrulama Kodu Gönder"}
+                  </button>
+                  {otpError && <p role="alert" className="otp-error-text mb-4 text-xs font-bold">{otpError}</p>}
+                </>
+              )}
+              {otpSent && !phoneVerified && (
+                <div className="otp-panel mb-5 rounded-2xl border p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-extrabold">WhatsApp kodunu girin</p>
+                      <p className="mt-1 text-xs opacity-70">Kod telefonunuza gönderildi.</p>
+                    </div>
+                    <span className="otp-countdown text-xs font-bold">
+                      {otpSeconds > 0
+                        ? `Yeniden kod iste: 00:${String(otpSeconds).padStart(2, "0")}`
+                        : "Yeni kod iste"}
+                    </span>
+                  </div>
+                  <input
+                    autoFocus
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(event) => {
+                      const value = event.target.value.replace(/\D/g, "").slice(0, 6);
+                      setOtpCode(value);
+                      setOtpError("");
+                      if (value.length === 6) void verifyOtp(value);
+                    }}
+                    className={`otp-code-input mt-3 w-full rounded-xl px-4 py-3 text-center text-xl font-black tracking-[.45em] outline-none ${otpError ? "otp-input-error" : ""}`}
+                    placeholder="000000"
+                    aria-label="6 haneli WhatsApp doğrulama kodu"
+                  />
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <p className={`min-h-5 text-xs font-bold ${otpError ? "otp-error-text" : "opacity-0"}`}>
+                      {otpError || "Kod hazır"}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={sendOtp}
+                      disabled={otpBusy || otpSeconds > 0}
+                      className="otp-resend-button text-xs font-bold underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Yeniden gönder
+                    </button>
+                  </div>
+                </div>
+              )}
+              {phoneVerified && (
+                <div className="otp-verified mb-5 rounded-xl border px-4 py-3 text-sm font-bold">
+                  <Check size={16} /> Telefon numarası doğrulandı
+                </div>
+              )}
               {ownSubscriptionSlot(selectedSlot || "") && (
                 <div className="mb-4 inline-flex rounded-full border border-amber-400 bg-amber-500/20 px-4 py-2 text-xs font-black text-amber-800 dark:text-amber-300">
                   ★ Sizin Sabit Abonelik Saatiniz
@@ -748,18 +875,22 @@ export default function Home() {
                   </p>
                 </div>
               )}
-              <div className="mb-5 flex items-center justify-between border-t border-[var(--line)] pt-5">
+              <div className="mb-5 flex items-center justify-between border-t border-[var(--border)] pt-5">
                 <span className="home-muted text-sm">Ödenecek tutar</span>
-                <strong className="text-2xl text-amber-600 dark:text-amber-400">
+                <strong className="text-3xl font-black text-[var(--accent-gold)]">
                   {price ? `${price.toFixed(0)} TL` : "Ücretsiz"}
                 </strong>
               </div>
-              <button
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 onClick={submitBooking}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-amber-400 px-5 py-4 text-sm font-extrabold text-black transition hover:bg-amber-300"
+                className="apple-booking-cta flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-bold transition hover:opacity-95"
               >
-                Maç kaydı oluştur <ArrowRight size={17} />
-              </button>
+                {phoneVerified ? "Rezervasyonu Onayla" : otpSent ? "Kodu Doğrula" : "Doğrulama Kodu Gönder"} <ArrowRight size={17} />
+              </motion.button>
 
               {notice && (
                 <p className="home-card mt-4 rounded-xl p-3 text-sm">
@@ -769,7 +900,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* 4. KESİN SIRALAMA: GERÇEK MAÇ KAYITLARI & ARŞİV (order-4) */}
       <section id="kayitlar" className="order-4 scroll-mt-32">
@@ -892,5 +1023,6 @@ export default function Home() {
         </div>
       </footer>
     </main>
+    </MotionConfig>
   );
 }

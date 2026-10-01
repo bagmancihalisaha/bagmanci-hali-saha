@@ -32,6 +32,10 @@ export type WhatsAppTemplateComponent = {
 type WhatsAppResponseData = {
   error?: {
     message?: string;
+    code?: number;
+    error_subcode?: number;
+    type?: string;
+    fbtrace_id?: string;
     [key: string]: unknown;
   };
   [key: string]: unknown;
@@ -44,6 +48,8 @@ export type BookingConfirmation = {
   booking_time: string;
   duration_hours?: number;
   total_amount?: number;
+  paid_amount?: number;
+  deposit_amount?: number;
   payment_status?: string;
 };
 
@@ -57,7 +63,11 @@ const statusLabels: Record<string, string> = {
   rejected: "Reddedildi",
 };
 
-function missingConfigResult() {
+function missingConfigResult(): {
+  ok: false;
+  status: number;
+  data: WhatsAppResponseData;
+} {
   return {
     ok: false,
     status: 500,
@@ -155,7 +165,10 @@ export async function sendWhatsAppTextMessage({ to, text }: SendTextMessageOptio
   return { ok: response.ok, status: response.status, data };
 }
 
-export async function sendBookingConfirmationMessage(booking: BookingConfirmation) {
+function getBookingTemplateParameters(
+  booking: BookingConfirmation,
+  reminder: boolean,
+) {
   const duration = Number(booking.duration_hours || 1);
   const bookingDate = new Date(`${booking.booking_date}T12:00:00`);
   const formattedDate = new Intl.DateTimeFormat("tr-TR", {
@@ -171,18 +184,45 @@ export async function sendBookingConfirmationMessage(booking: BookingConfirmatio
   const endHour = Math.floor(endMinutes / 60) % 24;
   const endMinute = endMinutes % 60;
   const timeRange = `${booking.booking_time} - ${String(endHour).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`;
+  const total = Math.max(0, Number(booking.total_amount || 0));
+  const reportedPaid = Math.max(
+    0,
+    Number(booking.paid_amount || 0) ||
+      (booking.payment_status === "paid" ? total : 0) ||
+      (["deposit", "proof_submitted"].includes(booking.payment_status || "")
+        ? Number(booking.deposit_amount || 0)
+        : 0),
+  );
+  const paid = Math.min(total, reportedPaid);
+  const remaining = Math.max(0, total - paid);
+  const currency = (amount: number) =>
+    `₺${new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 }).format(amount)}`;
+  const paymentText =
+    paid >= total && total > 0
+      ? "Tamamı Ödendi (Kalan: ₺0)"
+      : paid > 0
+        ? reminder
+          ? `${currency(paid)} Alındı - Kalan: ${currency(remaining)}`
+          : `${currency(paid)} Kapora Alındı (Kalan: ${currency(remaining)})`
+        : reminder
+          ? `Ödenmedi (Kalan: ${currency(total)})`
+          : "Ödenmedi";
 
-  const components = [
-    {
-      type: "body" as const,
-      parameters: [
-        { type: "text" as const, text: booking.customer_name },
-        { type: "text" as const, text: formattedDate },
-        { type: "text" as const, text: weekday },
-        { type: "text" as const, text: timeRange },
-      ],
-    },
-  ];
+  return [booking.customer_name, formattedDate, weekday, timeRange, paymentText];
+}
+
+async function sendBookingTemplate(
+  booking: BookingConfirmation,
+  templateName: string,
+  reminder: boolean,
+) {
+  const components = [{
+    type: "body" as const,
+    parameters: getBookingTemplateParameters(booking, reminder).map((text) => ({
+      type: "text" as const,
+      text,
+    })),
+  }];
   const languages = [
     BOOKING_TEMPLATE_LANGUAGE,
     "tr_TR",
@@ -191,7 +231,7 @@ export async function sendBookingConfirmationMessage(booking: BookingConfirmatio
   ].filter((language, index, values) => values.indexOf(language) === index);
   let result = await sendWhatsAppTemplateMessage({
     to: booking.phone,
-    templateName: "rezervasyon_onay",
+    templateName,
     languageCode: languages[0],
     components,
   });
@@ -199,7 +239,7 @@ export async function sendBookingConfirmationMessage(booking: BookingConfirmatio
     if (result.ok) break;
     result = await sendWhatsAppTemplateMessage({
       to: booking.phone,
-      templateName: "rezervasyon_onay",
+      templateName,
       languageCode,
       components,
     });
@@ -207,26 +247,54 @@ export async function sendBookingConfirmationMessage(booking: BookingConfirmatio
   return result;
 }
 
-export async function sendPhoneVerificationCode(to: string, code: string) {
-  const templateName = process.env.WHATSAPP_OTP_TEMPLATE_NAME;
-  if (!templateName) {
-    return sendWhatsAppTextMessage({
-      to,
-      text: `Bagmanci Hali Saha dogrulama kodunuz: ${code}. Kod 10 dakika gecerlidir.`,
-    });
-  }
+export function sendBookingCreatedMessage(booking: BookingConfirmation) {
+  return sendBookingTemplate(booking, "rezervasyon_olusturuldu", false);
+}
 
-  return sendWhatsAppTemplateMessage({
+export function sendBookingReminderMessage(booking: BookingConfirmation) {
+  return sendBookingTemplate(booking, "rezervasyon_onay_hatirlatma", true);
+}
+
+export async function sendPhoneVerificationCode(to: string, code: string) {
+  const templateName =
+    process.env.WHATSAPP_OTP_TEMPLATE_NAME?.trim() || "telefon_dogrulama";
+  const languages = [
+    process.env.WHATSAPP_OTP_TEMPLATE_LANGUAGE ||
+      process.env.WHATSAPP_TEMPLATE_LANGUAGE ||
+      "tr",
+    "tr_TR",
+    "tr",
+    "en_US",
+  ].filter((language, index, values) => values.indexOf(language) === index);
+  const components: WhatsAppTemplateComponent[] = [
+    {
+      type: "body",
+      parameters: [{ type: "text", text: code }],
+    },
+    {
+      type: "button",
+      sub_type: "url",
+      index: "0",
+      parameters: [{ type: "text", text: code }],
+    },
+  ];
+  let result = await sendWhatsAppTemplateMessage({
     to,
     templateName,
-    languageCode: process.env.WHATSAPP_TEMPLATE_LANGUAGE || "tr",
-    components: [
-      {
-        type: "body",
-        parameters: [{ type: "text", text: code }],
-      },
-    ],
+    languageCode: languages[0],
+    components,
   });
+
+  for (const languageCode of languages.slice(1)) {
+    if (result.ok || result.data?.error?.code !== 132001) break;
+    result = await sendWhatsAppTemplateMessage({
+      to,
+      templateName,
+      languageCode,
+      components,
+    });
+  }
+  return result;
 }
 
 /**

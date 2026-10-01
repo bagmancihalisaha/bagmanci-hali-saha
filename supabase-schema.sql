@@ -102,6 +102,21 @@ create table if not exists public.whatsapp_phone_verifications (
   created_at timestamptz not null default now()
 );
 
+-- Public reservation phone verification. Codes expire after five minutes.
+create table if not exists public.phone_verifications (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  code text not null,
+  expires_at timestamptz not null,
+  verified boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists phone_verifications_phone_idx
+  on public.phone_verifications (phone, created_at desc);
+
+alter table public.phone_verifications enable row level security;
+
 create index if not exists whatsapp_phone_verifications_phone_idx on public.whatsapp_phone_verifications (formatted_phone, created_at desc);
 
 create table if not exists public.whatsapp_ready_replies (
@@ -139,6 +154,10 @@ as $$
     false
   );
 $$;
+
+drop policy if exists "admins manage phone verifications" on public.phone_verifications;
+create policy "admins manage phone verifications" on public.phone_verifications
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "admins manage operating expenses" on public.operating_expenses;
 create policy "admins manage operating expenses" on public.operating_expenses for all to authenticated using (public.is_admin()) with check (public.is_admin());

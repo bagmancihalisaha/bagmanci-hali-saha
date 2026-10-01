@@ -2,31 +2,71 @@
 @import 'tailwindcss';
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ============================================================
+   DESIGN TOKENS — SINGLE SOURCE OF TRUTH (Apple HIG)
+   ------------------------------------------------------------
+   Sağ/yeşil "luxury" renk mimarisi, Apple HIG standartlarına
+   göre yeniden katmanlandırıldı. Aşağıdaki 9 token her tema için
+   TEK kaynaktır; aşağıda kullanılan eski anlamsal adlar
+   (--ink, --muted, --cream, --paper, --line, --green, --lime)
+   bu kanonik token'lardan türeyen takma adlar olarak korunuyor.
+   Böylece animasyon ve font tanımlarına dokunulmadan tüm kurallar
+   aynı kaynaktan beslenir.
+   ============================================================ */
+
+/* ---------- AÇIK MOD (Apple Light Mode) ---------- */
 :root {
-  --ink: #202a27;
-  --muted: #6b7871;
-  --cream: #f7f8f4;
-  --paper: #ffffff;
-  --lime: #d9f36a;
-  --green: #24533d;
-  --line: #e5e9e1;
+  --bg-page: #F8F9FA;            /* Temiz, ferah Apple zemin */
+  --bg-surface: #FFFFFF;         /* Saf beyaz kart zeminleri */
+  --bg-subtle: #F1F3F5;          /* Açık gri-bej buton/slot zemini */
+  --border: rgba(15, 23, 42, 0.08); /* Jilet gibi ince sınırlar */
+  --text-primary: #0F172A;       /* Yüksek kontrastlı derin obsidian */
+  --text-secondary: #64748B;     /* Okunaklı arduvaz grisi */
+  --accent: #047857;             /* Derin lüks orman zümrüdü */
+  --accent-hover: #065F46;       /* Aksan hover tonu */
+  --accent-gold: #D97706;        /* Şampanya / sıcak altın vurgu */
+  --accent-fg: #FFFFFF;          /* Aksan üzerindeki metin */
+
+  /* Eski anlamsal adlar → kanonik token (geriye dönük uyum) */
+  --ink: var(--text-primary);
+  --muted: var(--text-secondary);
+  --cream: var(--bg-page);
+  --paper: var(--bg-surface);
+  --line: var(--border);
+  --green: var(--accent);
+  --lime: var(--accent-hover);
+
   color-scheme: light;
 }
 
+/* ---------- KOYU MOD (Apple Dark / Liquid Glass) ---------- */
 .dark {
-  --ink: #F8FAFC;
-  --muted: #b7c9c0;
-  --cream: #051811;
-  --paper: #09261b;
-  --lime: #D4AF37;
-  --green: #0a4a36;
-  --line: rgb(212 175 55 / 35%);
+  --bg-page: #000000;                              /* Derin OLED siyahı */
+  --bg-surface: rgba(255, 255, 255, 0.04);         /* Katmanlı buzlu cam */
+  --bg-subtle: rgba(255, 255, 255, 0.08);          /* Yarı saydam dolgular */
+  --border: rgba(255, 255, 255, 0.12);             /* Işıldayan cam kenarlıklar */
+  --text-primary: #F8FAFC;                         /* Kristal beyaz */
+  --text-secondary: #94A3B8;                       /* Duman grisi */
+  --accent: #10B981;                               /* Parlak neon zümrüt */
+  --accent-hover: #34D399;                         /* Neon aksan hover */
+  --accent-gold: #FBBF24;                          /* Parlak şampanya altını */
+  --accent-fg: #000000;                            /* Aksan üzerindeki metin */
+
+  /* Eski anlamsal adlar → kanonik token (geriye dönük uyum) */
+  --ink: var(--text-primary);
+  --muted: var(--text-secondary);
+  --cream: var(--bg-page);
+  --paper: var(--bg-surface);
+  --line: var(--border);
+  --green: var(--accent);
+  --lime: var(--accent-hover);
+
   color-scheme: dark;
 }
 
 /* Guarantee: no hardcoded light surface can win over dark mode, and no flash before hydration */
 html.dark, html.dark body {
-  background-color: #051811 !important;
+  background-color: #000000 !important;
   color: #F8FAFC !important;
 }
 body {
@@ -39,7 +79,7 @@ html.dark [class*="f5f7f3"],
 html.dark [class*="eef1eb"],
 html.dark [class*="fcfdfa"],
 html.dark [class*="fbfcf9"] {
-  background-color: #051811 !important;
+  background-color: #000000 !important;
 }
 
 /* Typography safety net: only applies where nothing more specific already sets a color. */
@@ -54,6 +94,15 @@ button, input { font: inherit; }
 button { cursor: pointer; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button { appearance: none; }
+.apple-button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 10px; border: 1px solid transparent; border-radius: 14px; padding: 0 20px; font-size: 15px; font-weight: 700; line-height: 1.2; text-decoration: none; transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+.apple-button:hover { transform: translateY(-1px); }
+.apple-button:active { transform: translateY(0); }
+.apple-button:focus-visible { outline: 3px solid rgb(255 255 255 / 92%); outline-offset: 3px; box-shadow: 0 0 0 6px rgb(245 158 11 / 55%); }
+.apple-button-primary { background: #fbbf24; color: #111b16; box-shadow: 0 8px 20px rgb(251 191 36 / 22%); }
+.apple-button-primary:hover { background: #fcd34d; box-shadow: 0 10px 24px rgb(251 191 36 / 30%); }
+.apple-button-secondary { border-color: rgb(255 255 255 / 28%); background: rgb(255 255 255 / 10%); color: white; backdrop-filter: blur(16px); }
+.apple-button-secondary:hover { border-color: rgb(255 255 255 / 45%); background: rgb(255 255 255 / 18%); }
+.apple-button:disabled { cursor: not-allowed; opacity: .5; transform: none; }
 .header-icon-button { display: flex; height: 48px; width: 48px; align-items: center; justify-content: center; border: 1px solid rgb(255 255 255 / 35%); border-radius: 999px; background: transparent; color: white; }
 .header-login-button, .site-action-button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 999px; padding: 0 22px; background: var(--lime); color: var(--green); font-size: 15px; font-weight: 700; line-height: 1; text-decoration: none; }
 .header-login-button:hover, .site-action-button:hover { background: white; }
@@ -1052,4 +1101,1666 @@ html.dark div[class*="bg-white"],
 html.dark div[class*="bg-stone"],
 html.dark div[class*="bg-slate-50"] {
   background-color: #051811 !important;
+}
+
+/* ---------- Apple dark glass homepage ---------- */
+.home-page {
+  --home-bg: #000000;
+  --home-surface: #08090a;
+  --home-panel: rgb(255 255 255 / 3%);
+  --home-panel-hover: rgb(255 255 255 / 6%);
+  --home-border: rgb(255 255 255 / 8%);
+  --home-text: #f5f5f7;
+  --home-muted: rgb(245 245 247 / 62%);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--home-bg) !important;
+  color: var(--home-text) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+}
+.home-page::before,
+.home-page::after {
+  position: absolute;
+  z-index: -1;
+  width: 42rem;
+  height: 42rem;
+  border-radius: 50%;
+  background: #10b981;
+  content: "";
+  filter: blur(140px);
+  opacity: .2;
+  pointer-events: none;
+}
+.home-page::before { top: 16rem; left: -24rem; }
+.home-page::after { top: 54rem; right: -25rem; }
+.home-page .home-section,
+.home-page .site-footer { background: transparent !important; color: var(--home-text) !important; }
+.home-page .home-section { position: relative; }
+.home-page .field-lines { background-image: radial-gradient(circle at 50% 15%, rgb(16 185 129 / 10%), transparent 38%); }
+.home-page .noise::after { display: none; }
+.home-page .home-title,
+.home-page .home-page h1,
+.home-page .home-page h2,
+.home-page .home-page h3 { background: linear-gradient(to bottom, #fff, #fff 45%, rgb(255 255 255 / 60%)); background-clip: text; color: transparent; -webkit-background-clip: text; }
+.home-page .home-title span { color: #34d399; }
+.home-page .home-muted { color: var(--home-muted) !important; }
+.home-page .home-kicker,
+.home-page .schedule-row-label { color: rgb(255 255 255 / 50%) !important; letter-spacing: .16em; text-transform: uppercase; }
+.home-page .home-card,
+.home-page .home-card-accent,
+.home-page .pricing-card,
+.home-page .home-booking-shell,
+.home-page .home-photo-card,
+.home-page .home-stat-card,
+.home-page .booking-form-card,
+.home-page .map-frame {
+  border: 1px solid var(--home-border) !important;
+  background: var(--home-panel) !important;
+  color: var(--home-text) !important;
+  box-shadow: 0 8px 32px 0 rgb(0 0 0 / 37%);
+  backdrop-filter: blur(32px);
+}
+.home-page .pricing-card:hover,
+.home-page .home-card:hover,
+.home-page .home-booking-shell:hover { background: var(--home-panel-hover) !important; }
+.home-page .pricing-card-featured { border-color: rgb(52 211 153 / 48%) !important; box-shadow: 0 0 36px rgb(16 185 129 / 12%), 0 8px 32px 0 rgb(0 0 0 / 37%); }
+.home-page .pricing-card-title,
+.home-page .pricing-card-note,
+.home-page .pricing-card-accent { color: var(--home-text) !important; }
+.home-page .pricing-card-accent { color: #34d399 !important; }
+.home-page .home-photo-card { border: 0 !important; box-shadow: 0 0 80px rgb(16 185 129 / 20%); }
+.home-page .home-photo-card::before { position: absolute; inset: -10rem; z-index: -1; border-radius: 50%; background: rgb(16 185 129 / 25%); content: ""; filter: blur(80px); }
+.home-page .home-stat-card { border-radius: 16px; }
+.home-page .home-input {
+  border-color: rgb(255 255 255 / 10%) !important;
+  background: rgb(255 255 255 / 5%) !important;
+  color: var(--home-text) !important;
+}
+.home-page .home-input:focus { border-color: rgb(16 185 129 / 50%) !important; box-shadow: 0 0 0 4px rgb(16 185 129 / 10%); }
+.home-page .home-input::placeholder { color: rgb(255 255 255 / 35%); }
+.home-page .home-chip,
+.home-page .home-ghost-button {
+  border-color: var(--home-border) !important;
+  background: var(--home-panel) !important;
+  color: var(--home-text) !important;
+  backdrop-filter: blur(20px);
+}
+.home-page .home-chip:hover,
+.home-page .home-ghost-button:hover { border-color: rgb(52 211 153 / 50%) !important; background: var(--home-panel-hover) !important; }
+.home-page .home-chip-active { border-color: rgb(52 211 153 / 60%) !important; color: #fff !important; box-shadow: 0 0 24px rgb(16 185 129 / 18%); }
+.home-page .home-chip-disabled { border-color: transparent !important; background: rgb(255 255 255 / 2%) !important; color: rgb(255 255 255 / 22%) !important; }
+.home-page .schedule-slot {
+  border-color: var(--home-border) !important;
+  background: rgb(255 255 255 / 3%) !important;
+  color: var(--home-text) !important;
+  box-shadow: inset 0 1px rgb(255 255 255 / 5%);
+  backdrop-filter: blur(20px);
+}
+.home-page .schedule-slot:hover { border-color: rgb(52 211 153 / 55%) !important; background: rgb(255 255 255 / 7%) !important; }
+.home-page .schedule-slot-selected,
+.home-page .schedule-slot-vip.schedule-slot-selected { border-color: #34d399 !important; background: rgb(16 185 129 / 18%) !important; color: #fff !important; box-shadow: 0 0 26px rgb(16 185 129 / 28%), inset 0 0 0 1px rgb(52 211 153 / 30%); }
+.home-page .schedule-slot-vip { border-color: rgb(52 211 153 / 35%) !important; background: rgb(16 185 129 / 7%) !important; }
+.home-page .schedule-slot-locked { border-color: rgb(255 255 255 / 6%) !important; background: rgb(255 255 255 / 2%) !important; color: rgb(255 255 255 / 28%) !important; opacity: .3; }
+.home-page .schedule-slot-crown { color: #34d399 !important; filter: drop-shadow(0 0 7px rgb(52 211 153 / 60%)); }
+.home-page .subscriber-summary-badge { border-color: rgb(52 211 153 / 30%) !important; background: rgb(16 185 129 / 10%) !important; color: #6ee7b7 !important; }
+.home-page .apple-booking-cta { border: 1px solid rgb(110 231 183 / 45%); background: linear-gradient(135deg, #10b981, #34d399); color: #001b12; box-shadow: 0 12px 30px rgb(16 185 129 / 22%); }
+.home-page .apple-booking-cta:hover { box-shadow: 0 14px 38px rgb(16 185 129 / 38%); }
+.home-page .site-footer { border-color: var(--home-border) !important; }
+.home-page .site-header {
+  position: fixed !important;
+  top: 16px;
+  right: 0;
+  left: 0;
+  width: 100%;
+  transform: none;
+  overflow: visible;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.home-page .site-header > nav { width: min(calc(100% - 32px), 1152px); }
+.home-page .site-header .header-nav-tab { display: inline-flex; min-height: 32px; align-items: center; justify-content: center; gap: 6px; border: 1px solid transparent; border-radius: 999px; background: transparent; padding: 0 12px; color: rgb(245 245 247 / 72%); font-size: 12px; font-weight: 700; white-space: nowrap; transition: background-color .2s ease, border-color .2s ease, color .2s ease; }
+.home-page .site-header .header-nav-tab:hover { border-color: rgb(52 211 153 / 30%); background: rgb(255 255 255 / 8%); color: #fff; }
+.home-page .site-header .header-nav-tab svg { color: #34d399; }
+.home-page .site-header .header-account-menu { top: calc(100% + 8px); right: 0; }
+@media (max-width: 640px) {
+  .home-page .site-header { top: 10px; }
+  .home-page .site-header > nav { width: calc(100% - 20px); gap: 8px; padding-inline: 12px; }
+}
+.home-page .map-frame iframe { opacity: .72; filter: grayscale(1) invert(1) contrast(.85); }
+.home-page .text-amber-400,
+.home-page .text-amber-500,
+.home-page .text-amber-600,
+.home-page .text-amber-700,
+.home-page .text-amber-800 { color: #34d399 !important; }
+.home-page .bg-amber-400,
+.home-page .bg-amber-500 { background-color: #10b981 !important; }
+.home-page .border-amber-400 { border-color: rgb(52 211 153 / 55%) !important; }
+.home-page .home-section > .mx-auto { position: relative; z-index: 1; }
+.home-page .apple-button-secondary { border-color: rgb(255 255 255 / 16%); background: rgb(255 255 255 / 6%); }
+.home-page .apple-button-secondary:hover { border-color: rgb(52 211 153 / 55%); background: rgb(255 255 255 / 10%); }
+@media (prefers-reduced-motion: reduce) {
+  .home-page *, .home-page *::before, .home-page *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
+/* ---------- Shared Apple glass admin system ---------- */
+.admin-motion-shell {
+  --admin-bg: #000000;
+  --admin-surface: #08090a;
+  --admin-panel: rgb(255 255 255 / 3%);
+  --admin-panel-hover: rgb(255 255 255 / 6%);
+  --admin-border: rgb(255 255 255 / 8%);
+  --admin-text: #f5f5f7;
+  --admin-muted: rgb(245 245 247 / 58%);
+  min-height: 100vh;
+  color: var(--admin-text);
+  background: radial-gradient(circle at 10% 4%, rgb(16 185 129 / 12%), transparent 24rem), radial-gradient(circle at 92% 60%, rgb(16 185 129 / 10%), transparent 28rem), var(--admin-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+}
+.admin-motion-shell main[class*="bg-[#f5f7f3]"],
+.admin-motion-shell .admin-dashboard,
+.admin-motion-shell .admin-settings-page,
+.admin-motion-shell .reservation-page {
+  min-height: 100vh;
+  background: transparent !important;
+  color: var(--admin-text) !important;
+}
+.admin-motion-shell > main {
+  min-height: 100vh;
+  background: transparent !important;
+  color: var(--admin-text) !important;
+}
+.admin-motion-shell > main > div[class*="bg-white"],
+.admin-motion-shell > main > div[class*="rounded-3xl"] { border: 1px solid var(--admin-border); background: var(--admin-panel) !important; color: var(--admin-text); backdrop-filter: blur(32px); }
+.admin-motion-shell h1,
+.admin-motion-shell h2,
+.admin-motion-shell h3,
+.admin-motion-shell .display {
+  background: linear-gradient(to bottom, #fff, #fff 45%, rgb(255 255 255 / 60%));
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -.04em;
+  -webkit-background-clip: text;
+}
+.admin-motion-shell p,
+.admin-motion-shell label,
+.admin-motion-shell span { color: inherit; }
+.admin-motion-shell main[class*="bg-[#f5f7f3]"] > div > article,
+.admin-motion-shell main[class*="bg-[#f5f7f3]"] > div > section,
+.admin-motion-shell main[class*="bg-[#f5f7f3]"] > div > form,
+.admin-motion-shell main[class*="bg-[#f5f7f3]"] > div > div[class*="bg-white"],
+.admin-motion-shell .admin-card,
+.admin-motion-shell .admin-settings-panel,
+.admin-motion-shell .admin-image-card,
+.admin-motion-shell .admin-day-record,
+.admin-motion-shell .weekly-field-summary,
+.admin-motion-shell .reservation-summary-card,
+.admin-motion-shell .reservation-scroll {
+  border: 1px solid var(--admin-border) !important;
+  background: var(--admin-panel) !important;
+  color: var(--admin-text) !important;
+  box-shadow: 0 8px 32px 0 rgb(0 0 0 / 37%);
+  backdrop-filter: blur(32px);
+}
+.admin-motion-shell main[class*="bg-[#f5f7f3]"] [class*="bg-white"],
+.admin-motion-shell main[class*="bg-[#f5f7f3]"] [class*="bg-[#f5f7f3]"],
+.admin-motion-shell main[class*="bg-[#f5f7f3]"] [class*="bg-[#f3f6f0]"] {
+  border-color: var(--admin-border) !important;
+  background: var(--admin-panel) !important;
+  color: var(--admin-text) !important;
+}
+.admin-motion-shell main[class*="bg-[#f5f7f3]"] [class*="bg-white"]:hover,
+.admin-motion-shell .admin-image-card:hover,
+.admin-motion-shell .admin-day-record:hover,
+.admin-motion-shell .reservation-summary-card:hover { background: var(--admin-panel-hover) !important; }
+.admin-motion-shell input,
+.admin-motion-shell select,
+.admin-motion-shell textarea {
+  border: 1px solid var(--admin-border) !important;
+  background: rgb(255 255 255 / 5%) !important;
+  color: var(--admin-text) !important;
+  outline: none;
+}
+.admin-motion-shell input:focus,
+.admin-motion-shell select:focus,
+.admin-motion-shell textarea:focus { border-color: rgb(52 211 153 / 55%) !important; box-shadow: 0 0 0 4px rgb(16 185 129 / 10%); }
+.admin-motion-shell input::placeholder,
+.admin-motion-shell textarea::placeholder { color: rgb(255 255 255 / 35%); }
+.admin-motion-shell button,
+.admin-motion-shell a[class*="bg-[var(--green)]"],
+.admin-motion-shell a[class*="bg-emerald"] {
+  transition: transform .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.admin-motion-shell button:hover,
+.admin-motion-shell a[class*="bg-[var(--green)]"]:hover,
+.admin-motion-shell a[class*="bg-emerald"]:hover { transform: translateY(-1px); }
+.admin-motion-shell button:active,
+.admin-motion-shell a[class*="bg-[var(--green)]"]:active,
+.admin-motion-shell a[class*="bg-emerald"]:active { transform: scale(.96); }
+.admin-motion-shell [class*="bg-[var(--green)]"],
+.admin-motion-shell [class*="bg-emerald-600"],
+.admin-motion-shell [class*="bg-emerald-700"] {
+  border-color: rgb(110 231 183 / 35%) !important;
+  background: linear-gradient(135deg, #10b981, #34d399) !important;
+  color: #001b12 !important;
+}
+.admin-motion-shell [class*="text-[var(--green)]"],
+.admin-motion-shell [class*="text-emerald"],
+.admin-motion-shell .admin-settings-tab.active { color: #6ee7b7 !important; }
+.admin-motion-shell [class*="border-[var(--line)]"],
+.admin-motion-shell [class*="border-stone"] { border-color: var(--admin-border) !important; }
+.admin-motion-shell .admin-luxury-header {
+  border-bottom: 1px solid var(--admin-border);
+  background: rgb(0 0 0 / 40%) !important;
+  backdrop-filter: blur(24px) saturate(140%);
+}
+.admin-motion-shell .admin-luxury-header a,
+.admin-motion-shell .admin-vip-pill,
+.admin-motion-shell .admin-menu-button { border-color: var(--admin-border); }
+.admin-motion-shell .admin-modal-backdrop { background: rgb(0 0 0 / 72%); backdrop-filter: blur(12px); }
+.admin-motion-shell .admin-modal,
+.admin-motion-shell .booking-detail-modal { border-color: var(--admin-border); background: rgb(17 18 20 / 96%); color: var(--admin-text); box-shadow: 0 24px 70px rgb(0 0 0 / 55%); }
+.admin-motion-shell .reservation-grid { background: var(--admin-surface); }
+.admin-motion-shell .reservation-corner,
+.admin-motion-shell .reservation-day,
+.admin-motion-shell .reservation-cell,
+.admin-motion-shell .reservation-hour,
+.admin-motion-shell .reservation-total-cell { border-color: var(--admin-border); background: rgb(255 255 255 / 3%); color: var(--admin-text); }
+.admin-motion-shell .reservation-cell-booked,
+.admin-motion-shell .reservation-cell-subscriber,
+.admin-motion-shell .reservation-day-current,
+.admin-motion-shell .reservation-cell-current { background: rgb(16 185 129 / 16%) !important; border-color: rgb(52 211 153 / 45%) !important; }
+@media (prefers-reduced-motion: reduce) {
+  .admin-motion-shell *, .admin-motion-shell *::before, .admin-motion-shell *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
+/* ---------- Shared app surfaces ---------- */
+.customer-page,
+.payment-page,
+.account-page,
+main[class*="bg-[var(--cream)]"] {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  overflow: hidden;
+  background: radial-gradient(circle at 10% 5%, rgb(16 185 129 / 13%), transparent 24rem), radial-gradient(circle at 90% 75%, rgb(16 185 129 / 9%), transparent 28rem), #000 !important;
+  color: #f5f5f7 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+}
+.customer-page > div,
+.payment-page > div,
+.account-page > div {
+  position: relative;
+  z-index: 1;
+}
+.customer-page .customer-panel,
+.customer-page > div > div,
+.payment-page .payment-bank,
+.payment-page .payment-choice,
+.payment-page > div > section,
+.account-page .account-card,
+.account-page .account-subscription-card,
+.account-page .account-membership {
+  border-color: rgb(255 255 255 / 8%) !important;
+  background: rgb(255 255 255 / 3%) !important;
+  color: #f5f5f7 !important;
+  box-shadow: 0 8px 32px 0 rgb(0 0 0 / 37%);
+  backdrop-filter: blur(32px);
+}
+.customer-page input,
+.customer-page select,
+.payment-page input,
+.payment-page select,
+.account-page input,
+.account-page select,
+.account-page textarea {
+  border-color: rgb(255 255 255 / 10%) !important;
+  background: rgb(255 255 255 / 5%) !important;
+  color: #f5f5f7 !important;
+}
+.customer-page input:focus,
+.customer-page select:focus,
+.payment-page input:focus,
+.payment-page select:focus,
+.account-page input:focus,
+.account-page select:focus,
+.account-page textarea:focus { border-color: rgb(16 185 129 / 55%) !important; box-shadow: 0 0 0 4px rgb(16 185 129 / 10%); }
+.customer-page button,
+.customer-page a[class*="bg-[var(--green)]"],
+.payment-page button,
+.account-page button,
+.account-page a[class*="bg-[var(--green)]"] { transition: transform .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.customer-page button:hover,
+.customer-page a[class*="bg-[var(--green)]"]:hover,
+.payment-page button:hover,
+.account-page button:hover,
+.account-page a[class*="bg-[var(--green)]"]:hover { transform: translateY(-1px); }
+.customer-page button:active,
+.customer-page a[class*="bg-[var(--green)]"]:active,
+.payment-page button:active,
+.account-page button:active,
+.account-page a[class*="bg-[var(--green)]"]:active { transform: scale(.96); }
+.customer-page [class*="bg-[var(--green)]"],
+.payment-page [class*="bg-[var(--green)]"],
+.account-page [class*="bg-[var(--green)]"] { background: linear-gradient(135deg, #10b981, #34d399) !important; color: #001b12 !important; }
+.customer-page [class*="bg-[var(--lime)]"],
+.payment-page [class*="bg-[var(--lime)]"],
+.account-page [class*="bg-[var(--lime)]"] { background: rgb(52 211 153 / 16%) !important; color: #6ee7b7 !important; }
+.customer-page [class*="text-[var(--green)]"],
+.payment-page [class*="text-[var(--green)]"],
+.account-page [class*="text-[var(--green)]"] { color: #6ee7b7 !important; }
+.customer-page h1,
+.customer-page h2,
+.payment-page h1,
+.payment-page h2,
+.account-page h1,
+.account-page h2 { background: linear-gradient(to bottom, #fff, #fff 45%, rgb(255 255 255 / 60%)); background-clip: text; color: transparent; -webkit-background-clip: text; }
+.customer-page .customer-art { border-right: 1px solid rgb(255 255 255 / 8%); box-shadow: inset -40px 0 80px rgb(16 185 129 / 8%); }
+
+/* Theme-specific homepage surfaces. Keep light mode independent from dark glass rules above. */
+.site-menu-backdrop { border: 0; background: rgb(0 0 0 / 38%); }
+.site-mobile-menu { border-color: rgb(255 255 255 / 10%) !important; }
+.header-account-menu { background: #0f1412 !important; border-color: rgb(255 255 255 / 10%) !important; color: #f5f5f7 !important; opacity: 1; }
+html:not(.dark) .home-page { background: #f4f6f5 !important; color: #0f172a !important; }
+html:not(.dark) .home-page .home-section,
+html:not(.dark) .home-page .site-footer { background: #f4f6f5 !important; color: #0f172a !important; }
+html:not(.dark) .home-page .field-lines { background-image: radial-gradient(circle at 50% 10%, rgb(16 185 129 / 8%), transparent 38%) !important; }
+html:not(.dark) .home-page .home-section:first-of-type { background-image: none !important; }
+html:not(.dark) .home-page .home-title,
+html:not(.dark) .home-page h1,
+html:not(.dark) .home-page h2,
+html:not(.dark) .home-page h3 { background: none !important; color: #0f172a !important; }
+html:not(.dark) .home-page .home-title span { color: #059669 !important; }
+html:not(.dark) .home-page .home-muted { color: #475569 !important; }
+html:not(.dark) .home-page .home-kicker,
+html:not(.dark) .home-page .schedule-row-label { color: #475569 !important; }
+html:not(.dark) .home-page .home-card,
+html:not(.dark) .home-page .home-card-accent,
+html:not(.dark) .home-page .pricing-card,
+html:not(.dark) .home-page .home-booking-shell,
+html:not(.dark) .home-page .home-photo-card,
+html:not(.dark) .home-page .home-stat-card,
+html:not(.dark) .home-page .booking-form-card,
+html:not(.dark) .home-page .map-frame { border-color: rgb(15 23 42 / 9%) !important; background: #fff !important; color: #0f172a !important; box-shadow: 0 4px 20px rgb(0 0 0 / 6%); backdrop-filter: none; }
+html:not(.dark) .home-page .pricing-card:hover,
+html:not(.dark) .home-page .home-card:hover,
+html:not(.dark) .home-page .home-booking-shell:hover { background: #fff !important; }
+html:not(.dark) .home-page .pricing-card-title,
+html:not(.dark) .home-page .pricing-card-note { color: #0f172a !important; }
+html:not(.dark) .home-page .pricing-card-accent { color: #059669 !important; }
+html:not(.dark) .home-page .home-input { border-color: #cbd5e1 !important; background: #fff !important; color: #0f172a !important; }
+html:not(.dark) .home-page .home-input::placeholder { color: #64748b; }
+html:not(.dark) .home-page .home-chip,
+html:not(.dark) .home-page .home-ghost-button,
+html:not(.dark) .home-page .schedule-slot { border-color: #dbe4df !important; background: #fff !important; color: #0f172a !important; backdrop-filter: none; }
+html:not(.dark) .home-page .schedule-slot-selected,
+html:not(.dark) .home-page .schedule-slot-vip.schedule-slot-selected { background: rgb(16 185 129 / 16%) !important; border-color: #10b981 !important; color: #064e3b !important; box-shadow: 0 0 20px rgb(16 185 129 / 18%); }
+html:not(.dark) .home-page .schedule-slot-locked { background: #e2e8f0 !important; color: #64748b !important; opacity: .45; }
+html:not(.dark) .home-page .site-header nav { border-color: rgb(15 23 42 / 10%) !important; background: rgb(255 255 255 / 82%) !important; color: #0f172a !important; box-shadow: 0 8px 32px rgb(15 23 42 / 8%); backdrop-filter: blur(24px); }
+html:not(.dark) .home-page .site-header .header-nav-tab { color: #334155; }
+html:not(.dark) .home-page .site-header .header-nav-tab:hover { background: rgb(16 185 129 / 10%); color: #064e3b; }
+html:not(.dark) .home-page .site-header button[aria-label="Menüyü aç"],
+html:not(.dark) .home-page .site-header button[aria-label="Hesabım menüsünü aç"],
+html:not(.dark) .home-page .site-header a[aria-label="Müşteri girişi"] { border-color: rgb(15 23 42 / 10%); background: rgb(15 23 42 / 5%); color: #0f172a; }
+html:not(.dark) .home-page .site-header .header-account-menu { background: #fff !important; border-color: #dbe4df !important; color: #0f172a !important; box-shadow: 0 18px 40px rgb(15 23 42 / 14%); }
+html:not(.dark) .home-page .site-header .header-account-menu strong,
+html:not(.dark) .home-page .site-header .header-account-menu a { color: #0f172a !important; }
+html:not(.dark) .home-page .site-header .header-account-menu p { color: #64748b !important; }
+html:not(.dark) .home-page .site-mobile-menu { background: #fff !important; color: #0f172a !important; border-color: #dbe4df !important; }
+html:not(.dark) .home-page .site-mobile-menu button { color: #0f172a !important; }
+
+/* Final light-mode contrast pass for the homepage booking experience. */
+html:not(.dark) .home-page {
+  --home-bg: #f5f5f7;
+  --home-surface: #ffffff;
+  --home-text: #1d1d1f;
+  --home-muted: #6e6e73;
+  background: #f5f5f7 !important;
+  color: #1d1d1f !important;
+}
+html:not(.dark) .home-page .home-section,
+html:not(.dark) .home-page .site-footer { background: #f5f5f7 !important; color: #1d1d1f !important; }
+html:not(.dark) .home-page h1,
+html:not(.dark) .home-page h2,
+html:not(.dark) .home-page h3,
+html:not(.dark) .home-page .home-title,
+html:not(.dark) .home-page .pricing-card-title { color: #1d1d1f !important; background: none !important; -webkit-text-fill-color: #1d1d1f; }
+html:not(.dark) .home-page p,
+html:not(.dark) .home-page label,
+html:not(.dark) .home-page .home-muted,
+html:not(.dark) .home-page .pricing-card-note { color: #6e6e73 !important; }
+html:not(.dark) .home-page .home-kicker,
+html:not(.dark) .home-page .schedule-row-label,
+html:not(.dark) .home-page .pricing-card-accent { color: #059669 !important; }
+html:not(.dark) .home-page .home-section:first-of-type p { color: #475569 !important; }
+html:not(.dark) .home-page .home-section:first-of-type h1 { color: #1d1d1f !important; }
+html:not(.dark) .home-page .home-section:first-of-type h1 span { color: #059669 !important; -webkit-text-fill-color: #059669; }
+html:not(.dark) .home-page .home-section:first-of-type .text-white\/60,
+html:not(.dark) .home-page .home-section:first-of-type .text-white\/70,
+html:not(.dark) .home-page .home-section:first-of-type .text-white\/90 { color: #475569 !important; }
+html:not(.dark) .home-page .home-card,
+html:not(.dark) .home-page .home-card-accent,
+html:not(.dark) .home-page .pricing-card,
+html:not(.dark) .home-page .home-booking-shell,
+html:not(.dark) .home-page .booking-form-card,
+html:not(.dark) .home-page .map-frame,
+html:not(.dark) .home-page .home-stat-card { border: 1px solid rgb(15 23 42 / 10%) !important; background: #fff !important; box-shadow: 0 4px 24px rgb(0 0 0 / 4%) !important; color: #1d1d1f !important; }
+html:not(.dark) .home-page .pricing-card-featured { border-color: rgb(5 150 105 / 35%) !important; }
+html:not(.dark) .home-page .schedule-slot { border: 1px solid rgb(15 23 42 / 13%) !important; background: #fafafa !important; color: #1d1d1f !important; font-weight: 600; }
+html:not(.dark) .home-page .schedule-slot:hover { border-color: #a7f3d0 !important; background: #f4f4f5 !important; }
+html:not(.dark) .home-page .schedule-slot-selected,
+html:not(.dark) .home-page .schedule-slot-vip.schedule-slot-selected { border-color: #059669 !important; background: #059669 !important; color: #fff !important; font-weight: 700; box-shadow: 0 4px 14px rgb(5 150 105 / 20%) !important; }
+html:not(.dark) .home-page .schedule-slot-selected i,
+html:not(.dark) .home-page .schedule-slot-selected small { color: rgb(255 255 255 / 82%) !important; }
+html:not(.dark) .home-page .schedule-slot-locked { border: 1px solid rgb(161 161 170 / 40%) !important; background: rgb(244 244 245 / 60%) !important; color: #a1a1aa !important; opacity: 1; text-decoration: line-through; text-decoration-color: #d4d4d8; cursor: not-allowed; }
+html:not(.dark) .home-page .home-input { border: 1px solid rgb(161 161 170 / 80%) !important; background: rgb(250 250 250 / 80%) !important; color: #1d1d1f !important; }
+html:not(.dark) .home-page .home-input:focus { border-color: #059669 !important; background: #fff !important; box-shadow: 0 0 0 2px rgb(5 150 105 / 15%) !important; }
+html:not(.dark) .home-page .home-input::placeholder { color: #a1a1aa !important; }
+html:not(.dark) .home-page .home-chip,
+html:not(.dark) .home-page .home-ghost-button { border-color: rgb(161 161 170 / 55%) !important; background: #fff !important; color: #1d1d1f !important; }
+html:not(.dark) .home-page .home-chip-active { border-color: #059669 !important; background: rgb(5 150 105 / 10%) !important; color: #065f46 !important; }
+html:not(.dark) .home-page .apple-button-primary,
+html:not(.dark) .home-page .apple-booking-cta { border-color: #059669 !important; background: #059669 !important; color: #fff !important; box-shadow: 0 10px 22px rgb(5 150 105 / 25%) !important; }
+html:not(.dark) .home-page .apple-button-primary:hover,
+html:not(.dark) .home-page .apple-booking-cta:hover { background: #047857 !important; }
+html:not(.dark) .home-page .apple-button-secondary { border-color: rgb(15 23 42 / 18%) !important; background: #fff !important; color: #1d1d1f !important; }
+html:not(.dark) .home-page .subscriber-summary-badge { border-color: rgb(5 150 105 / 30%) !important; background: rgb(5 150 105 / 8%) !important; color: #047857 !important; }
+html:not(.dark) .home-page .home-page .text-amber-400,
+html:not(.dark) .home-page .text-amber-500,
+html:not(.dark) .home-page .text-amber-600,
+html:not(.dark) .home-page .text-amber-700,
+html:not(.dark) .home-page .text-amber-800 { color: #059669 !important; }
+html:not(.dark) .home-page .site-header > nav { background: rgb(255 255 255 / 80%) !important; border-color: rgb(161 161 170 / 55%) !important; box-shadow: 0 4px 16px rgb(0 0 0 / 6%) !important; }
+html:not(.dark) .home-page .site-header .header-nav-tab { color: #1d1d1f !important; font-weight: 500; }
+html:not(.dark) .home-page .site-header .header-nav-tab:hover { color: #047857 !important; background: rgb(5 150 105 / 8%) !important; }
+html:not(.dark) .home-page .site-header .header-nav-tab svg { color: #059669 !important; }
+html:not(.dark) .home-page .site-header > nav a span:first-child { color: #1d1d1f !important; }
+html:not(.dark) .home-page .site-header > nav a span:last-child { color: #059669 !important; }
+
+/* Final project-wide admin color constitution. */
+.admin-motion-shell {
+  --admin-black: #000000;
+  --admin-space: #08090a;
+  --admin-glass: rgb(255 255 255 / 4%);
+  --admin-glass-border: rgb(255 255 255 / 10%);
+  --admin-white: #f5f5f7;
+  --admin-gray: #86868b;
+  --admin-emerald: #10b981;
+  --admin-deep-emerald: #059669;
+}
+.admin-motion-shell > main:not(.admin-dashboard),
+.admin-motion-shell .admin-dashboard,
+.admin-motion-shell .reservation-page { background: var(--admin-black) !important; color: var(--admin-white) !important; }
+.admin-motion-shell > main:not(.admin-dashboard) > div[class*="rounded-3xl"],
+.admin-motion-shell > main:not(.admin-dashboard) > div[class*="max-w-md"] { border: 1px solid var(--admin-glass-border) !important; background: #0f1412 !important; color: var(--admin-white) !important; box-shadow: 0 8px 32px rgb(0 0 0 / 37%); backdrop-filter: blur(32px); }
+.admin-motion-shell .admin-dashboard > header,
+.admin-motion-shell .admin-luxury-header { border-color: var(--admin-glass-border) !important; background: rgb(0 0 0 / 72%) !important; color: var(--admin-white) !important; }
+.admin-motion-shell .admin-dashboard > div { color: var(--admin-white); }
+.admin-motion-shell .admin-luxury-brand { color: var(--admin-white); }
+.admin-motion-shell .admin-luxury-brand b,
+.admin-motion-shell .admin-settings-tab.active { color: #34d399 !important; }
+.admin-motion-shell .admin-luxury-brand span { border: 1px solid rgb(52 211 153 / 35%); background: rgb(16 185 129 / 16%); color: #34d399; }
+.admin-motion-shell .admin-stat-card,
+.admin-motion-shell .admin-reservations-card,
+.admin-motion-shell .admin-reservations-header,
+.admin-motion-shell .admin-booking-row,
+.admin-motion-shell .admin-settings-panel,
+.admin-motion-shell .admin-image-card,
+.admin-motion-shell .admin-pricing-panel,
+.admin-motion-shell .admin-whatsapp-panel,
+.admin-motion-shell .admin-day-records,
+.admin-motion-shell .weekly-field-summary,
+.admin-motion-shell .reservation-summary-card,
+.admin-motion-shell .reservation-scroll { border: 1px solid var(--admin-glass-border) !important; background: var(--admin-glass) !important; color: var(--admin-white) !important; box-shadow: 0 8px 32px rgb(0 0 0 / 37%); backdrop-filter: blur(32px); }
+.admin-motion-shell .admin-stat-card strong,
+.admin-motion-shell .reservation-summary-card strong,
+.admin-motion-shell .weekly-field-summary b,
+.admin-motion-shell .weekly-field-summary-heading strong { color: #f5f5f7 !important; font-weight: 800; }
+.admin-motion-shell .admin-stat-card p,
+.admin-motion-shell .reservation-summary-card small,
+.admin-motion-shell .reservation-summary-card span,
+.admin-motion-shell .weekly-field-summary small,
+.admin-motion-shell .weekly-field-summary-heading span { color: var(--admin-gray) !important; }
+.admin-motion-shell .admin-stat-card svg,
+.admin-motion-shell .admin-settings-panel svg { color: #34d399; }
+.admin-motion-shell .reservation-grid { background: var(--admin-space) !important; }
+.admin-motion-shell .reservation-corner,
+.admin-motion-shell .reservation-hour,
+.admin-motion-shell .reservation-day,
+.admin-motion-shell .reservation-cell,
+.admin-motion-shell .reservation-total-cell { border-color: var(--admin-glass-border) !important; background: rgb(255 255 255 / 3%) !important; color: var(--admin-white) !important; }
+.admin-motion-shell .reservation-corner,
+.admin-motion-shell .reservation-hour,
+.admin-motion-shell .reservation-total-heading { color: var(--admin-gray) !important; font-weight: 700; }
+.admin-motion-shell .reservation-day strong,
+.admin-motion-shell .reservation-cell strong { color: #f5f5f7 !important; }
+.admin-motion-shell .reservation-day span,
+.admin-motion-shell .reservation-cell span { color: var(--admin-gray) !important; }
+.admin-motion-shell .reservation-cell-booked,
+.admin-motion-shell .reservation-cell-subscriber { border: 1px solid rgb(52 211 153 / 55%) !important; background: rgb(16 185 129 / 22%) !important; color: #f5f5f7 !important; box-shadow: inset 0 0 0 1px rgb(110 231 183 / 12%), 0 4px 16px rgb(16 185 129 / 10%); }
+.admin-motion-shell .reservation-cell-booked strong,
+.admin-motion-shell .reservation-cell-subscriber strong { color: #ecfdf5 !important; }
+.admin-motion-shell .reservation-cell-booked span,
+.admin-motion-shell .reservation-cell-subscriber span { color: #a7f3d0 !important; }
+.admin-motion-shell .reservation-cell-current,
+.admin-motion-shell .reservation-day-current { border-color: rgb(52 211 153 / 65%) !important; background: rgb(16 185 129 / 14%) !important; }
+.admin-motion-shell .reservation-clock { background: #10b981 !important; color: #001b12 !important; }
+.admin-motion-shell .admin-settings-tab { border-color: var(--admin-glass-border) !important; background: var(--admin-glass) !important; color: var(--admin-gray) !important; }
+.admin-motion-shell input,
+.admin-motion-shell select,
+.admin-motion-shell textarea { border-color: var(--admin-glass-border) !important; background: rgb(255 255 255 / 5%) !important; color: var(--admin-white) !important; }
+.admin-motion-shell input:focus,
+.admin-motion-shell select:focus,
+.admin-motion-shell textarea:focus { border-color: rgb(16 185 129 / 65%) !important; box-shadow: 0 0 0 3px rgb(16 185 129 / 15%); }
+.admin-motion-shell button[class*="bg-[#fff1c9]"],
+.admin-motion-shell button[class*="bg-red"],
+.admin-motion-shell .booking-delete-button { border: 1px solid rgb(248 113 113 / 30%) !important; background: rgb(127 29 29 / 35%) !important; color: #fecaca !important; }
+.admin-motion-shell .admin-modal,
+.admin-motion-shell .booking-detail-modal { border-color: var(--admin-glass-border) !important; background: #0f1412 !important; color: var(--admin-white) !important; }
+
+html:not(.dark) .admin-motion-shell,
+html:not(.dark) .admin-motion-shell > main:not(.admin-dashboard),
+html:not(.dark) .admin-motion-shell .admin-dashboard,
+html:not(.dark) .admin-motion-shell .reservation-page { background: #f5f5f7 !important; color: #1d1d1f !important; }
+html:not(.dark) .admin-motion-shell > main:not(.admin-dashboard) > div[class*="rounded-3xl"],
+html:not(.dark) .admin-motion-shell > main:not(.admin-dashboard) > div[class*="max-w-md"] { border: 1px solid rgb(15 23 42 / 10%) !important; background: #fff !important; color: #1d1d1f !important; box-shadow: 0 4px 24px rgb(0 0 0 / 4%); backdrop-filter: none; }
+html:not(.dark) .admin-motion-shell .admin-dashboard > header,
+html:not(.dark) .admin-motion-shell .admin-luxury-header { border-color: rgb(15 23 42 / 10%) !important; background: rgb(255 255 255 / 82%) !important; color: #1d1d1f !important; box-shadow: 0 4px 16px rgb(0 0 0 / 6%); }
+html:not(.dark) .admin-motion-shell .admin-luxury-brand,
+html:not(.dark) .admin-motion-shell .admin-luxury-brand b { color: #1d1d1f !important; }
+html:not(.dark) .admin-motion-shell .admin-luxury-brand span { background: rgb(5 150 105 / 10%); color: #059669; }
+html:not(.dark) .admin-motion-shell .admin-stat-card,
+html:not(.dark) .admin-motion-shell .admin-reservations-card,
+html:not(.dark) .admin-motion-shell .admin-reservations-header,
+html:not(.dark) .admin-motion-shell .admin-booking-row,
+html:not(.dark) .admin-motion-shell .admin-settings-panel,
+html:not(.dark) .admin-motion-shell .admin-image-card,
+html:not(.dark) .admin-motion-shell .admin-pricing-panel,
+html:not(.dark) .admin-motion-shell .admin-whatsapp-panel,
+html:not(.dark) .admin-motion-shell .admin-day-records,
+html:not(.dark) .admin-motion-shell .weekly-field-summary,
+html:not(.dark) .admin-motion-shell .reservation-summary-card,
+html:not(.dark) .admin-motion-shell .reservation-scroll { border-color: rgb(15 23 42 / 10%) !important; background: #fff !important; color: #1d1d1f !important; box-shadow: 0 4px 24px rgb(0 0 0 / 4%) !important; backdrop-filter: none; }
+html:not(.dark) .admin-motion-shell .admin-stat-card strong,
+html:not(.dark) .admin-motion-shell .reservation-summary-card strong,
+html:not(.dark) .admin-motion-shell .weekly-field-summary b,
+html:not(.dark) .admin-motion-shell .weekly-field-summary-heading strong { color: #1d1d1f !important; }
+html:not(.dark) .admin-motion-shell .admin-stat-card p,
+html:not(.dark) .admin-motion-shell .reservation-summary-card small,
+html:not(.dark) .admin-motion-shell .reservation-summary-card span,
+html:not(.dark) .admin-motion-shell .weekly-field-summary small,
+html:not(.dark) .admin-motion-shell .weekly-field-summary-heading span { color: #6e6e73 !important; }
+html:not(.dark) .admin-motion-shell .reservation-corner,
+html:not(.dark) .admin-motion-shell .reservation-hour,
+html:not(.dark) .admin-motion-shell .reservation-day,
+html:not(.dark) .admin-motion-shell .reservation-cell,
+html:not(.dark) .admin-motion-shell .reservation-total-cell { border-color: rgb(15 23 42 / 10%) !important; background: #fff !important; color: #1d1d1f !important; }
+html:not(.dark) .admin-motion-shell .reservation-corner,
+html:not(.dark) .admin-motion-shell .reservation-hour,
+html:not(.dark) .admin-motion-shell .reservation-total-heading { color: #6e6e73 !important; }
+html:not(.dark) .admin-motion-shell .reservation-day strong,
+html:not(.dark) .admin-motion-shell .reservation-cell strong { color: #1d1d1f !important; }
+html:not(.dark) .admin-motion-shell .reservation-day span,
+html:not(.dark) .admin-motion-shell .reservation-cell span { color: #6e6e73 !important; }
+html:not(.dark) .admin-motion-shell .reservation-cell-booked,
+html:not(.dark) .admin-motion-shell .reservation-cell-subscriber { border-color: #059669 !important; background: rgb(5 150 105 / 14%) !important; }
+html:not(.dark) .admin-motion-shell .reservation-cell-booked strong,
+html:not(.dark) .admin-motion-shell .reservation-cell-subscriber strong { color: #064e3b !important; }
+html:not(.dark) .admin-motion-shell .reservation-cell-booked span,
+html:not(.dark) .admin-motion-shell .reservation-cell-subscriber span { color: #047857 !important; }
+html:not(.dark) .admin-motion-shell input,
+html:not(.dark) .admin-motion-shell select,
+html:not(.dark) .admin-motion-shell textarea { border-color: rgb(161 161 170 / 80%) !important; background: rgb(250 250 250 / 80%) !important; color: #1d1d1f !important; }
+html:not(.dark) .admin-motion-shell .admin-modal,
+html:not(.dark) .admin-motion-shell .booking-detail-modal { border-color: rgb(15 23 42 / 10%) !important; background: #fff !important; color: #1d1d1f !important; }
+
+/* Calendar strip: readable in both appearances. */
+.home-page .schedule-days { width: 100%; }
+.home-page .schedule-days .home-chip-active { border-color: #059669 !important; background: #059669 !important; color: #fff !important; box-shadow: 0 4px 12px rgb(5 150 105 / 22%); }
+.home-page .schedule-days .home-chip-active span { color: #fff !important; }
+html:not(.dark) .home-page .schedule-days { border-color: rgb(15 23 42 / 10%) !important; background: #f4f4f5 !important; }
+html:not(.dark) .home-page .schedule-days .home-chip { border-color: rgb(161 161 170 / 45%) !important; background: #fff !important; }
+html.dark .home-page .schedule-days .home-chip { border-color: rgb(255 255 255 / 10%) !important; background: rgb(255 255 255 / 4%) !important; color: #f5f5f7 !important; }
+
+/* Apple HIG luxury finish: final visual constitution for the requested pages. */
+body { color: var(--text-primary); background: var(--bg-page); }
+.site-header { top: 16px !important; padding-inline: 0; pointer-events: none; }
+.site-header > nav { pointer-events: auto; }
+.home-page {
+  --home-bg: var(--bg-page);
+  --home-surface: var(--bg-surface);
+  --home-subtle: var(--bg-subtle);
+  --home-border: var(--border);
+  --home-text: var(--text-primary);
+  --home-muted: var(--text-secondary);
+  overflow-x: hidden;
+  background: var(--bg-page) !important;
+  color: var(--text-primary) !important;
+}
+html.dark .home-page { background: #000 !important; color: var(--text-primary) !important; }
+.home-page::before,
+.home-page::after { display: none !important; }
+.home-page .home-section,
+.home-page .site-footer { background: var(--bg-page) !important; color: var(--text-primary) !important; }
+html.dark .home-page .home-section,
+html.dark .home-page .site-footer { background: #000 !important; }
+.home-page .home-title,
+.home-page h1,
+.home-page h2,
+.home-page h3 { color: var(--text-primary) !important; background: none !important; -webkit-text-fill-color: currentColor; }
+.home-page .home-title span,
+.home-page .luxury-gradient-text {
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent), var(--accent-gold));
+  background-clip: text;
+  color: transparent !important;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent !important;
+}
+.home-page .home-muted { color: var(--text-secondary) !important; }
+.home-page .home-kicker,
+.home-page .schedule-row-label { color: var(--accent) !important; letter-spacing: .12em; }
+.home-page .home-card,
+.home-page .home-card-accent,
+.home-page .pricing-card,
+.home-page .home-booking-shell,
+.home-page .booking-form-card,
+.home-page .map-frame,
+.home-page .home-stat-card {
+  border: 1px solid var(--border) !important;
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 18px 55px rgb(15 23 42 / 8%) !important;
+  backdrop-filter: blur(28px);
+}
+html.dark .home-page .home-card,
+html.dark .home-page .home-card-accent,
+html.dark .home-page .pricing-card,
+html.dark .home-page .home-booking-shell,
+html.dark .home-page .booking-form-card,
+html.dark .home-page .map-frame,
+html.dark .home-page .home-stat-card {
+  background: var(--bg-surface) !important;
+  box-shadow: 0 20px 70px rgb(0 0 0 / 60%) !important;
+}
+.home-page .home-photo-card {
+  border-top: 2px solid rgb(217 119 6 / 30%) !important;
+  border-right: 2px solid rgb(217 119 6 / 30%) !important;
+  border-left: 2px solid rgb(217 119 6 / 30%) !important;
+  box-shadow: 0 32px 90px rgb(4 120 87 / 22%), 0 16px 55px rgb(217 119 6 / 14%) !important;
+}
+.home-page .schedule-days {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  gap: .5rem !important;
+  max-width: 56rem;
+  margin-inline: auto;
+  border: 1px solid var(--border) !important;
+  border-radius: 1.5rem !important;
+  background: var(--bg-surface) !important;
+  padding: .625rem !important;
+  box-shadow: 0 12px 34px rgb(15 23 42 / 8%);
+}
+.home-page .home-chip,
+.home-page .home-ghost-button {
+  border: 1px solid var(--border) !important;
+  background: var(--bg-subtle) !important;
+  color: var(--text-primary) !important;
+  backdrop-filter: blur(18px);
+}
+.home-page .home-chip:hover,
+.home-page .home-ghost-button:hover { border-color: rgb(217 119 6 / 45%) !important; }
+.home-page .home-chip-active,
+.home-page .schedule-days .home-chip-active {
+  border-color: transparent !important;
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent)) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 24px rgb(217 119 6 / 22%) !important;
+}
+.home-page .home-chip-active span,
+.home-page .schedule-days .home-chip-active span { color: #fff !important; }
+.home-page .schedule-row { margin-top: 1.75rem; }
+.home-page .schedule-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .75rem;
+  font-size: .75rem;
+  font-weight: 800;
+}
+.home-page .schedule-slot {
+  min-height: 64px;
+  border: 1px solid var(--border) !important;
+  border-radius: 1rem !important;
+  background: var(--bg-subtle) !important;
+  color: var(--text-primary) !important;
+  font-size: .875rem;
+  font-weight: 700;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.home-page .schedule-slot i { color: var(--text-secondary) !important; }
+.home-page .schedule-slot:hover { border-color: var(--accent-gold) !important; background: var(--bg-subtle) !important; }
+.home-page .schedule-slot-selected,
+.home-page .schedule-slot-vip.schedule-slot-selected {
+  border-color: transparent !important;
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent)) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 28px rgb(217 119 6 / 22%) !important;
+}
+.home-page .schedule-slot-selected i,
+.home-page .schedule-slot-selected small { color: rgb(255 255 255 / 82%) !important; }
+.home-page .schedule-slot-locked {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  cursor: not-allowed;
+  opacity: .3 !important;
+  text-decoration: line-through;
+}
+.home-page .schedule-slot-vip { border-color: rgb(251 191 36 / 40%) !important; background: rgb(251 191 36 / 10%) !important; }
+.home-page .schedule-slot-crown { color: var(--accent-gold) !important; filter: drop-shadow(0 0 7px rgb(251 191 36 / 55%)); }
+.home-page .home-input {
+  border: 1px solid var(--border) !important;
+  border-radius: .75rem !important;
+  background: var(--bg-subtle) !important;
+  color: var(--text-primary) !important;
+}
+.home-page .home-input:focus { border-color: var(--accent-gold) !important; box-shadow: 0 0 0 4px rgb(217 119 6 / 14%) !important; }
+.home-page .apple-button-primary,
+.home-page .apple-booking-cta {
+  border: 0 !important;
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent)) !important;
+  color: #fff !important;
+  box-shadow: 0 16px 34px rgb(217 119 6 / 25%) !important;
+}
+html.dark .home-page .apple-button-primary,
+html.dark .home-page .apple-booking-cta { color: #000 !important; }
+.home-page .apple-button-secondary {
+  border-color: var(--border) !important;
+  background: color-mix(in srgb, var(--bg-surface) 72%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+.home-page .subscriber-summary-badge {
+  border-color: rgb(217 119 6 / 25%) !important;
+  background: rgb(217 119 6 / 10%) !important;
+  color: var(--accent-gold) !important;
+}
+.home-page .map-frame iframe { opacity: 1; filter: none; }
+.home-page .text-amber-400,
+.home-page .text-amber-500,
+.home-page .text-amber-600,
+.home-page .text-amber-700,
+.home-page .text-amber-800 { color: var(--accent-gold) !important; }
+
+.admin-dashboard,
+.admin-auth-page {
+  background: var(--bg-page) !important;
+  color: var(--text-primary) !important;
+}
+html.dark .admin-dashboard,
+html.dark .admin-auth-page { background: #000 !important; }
+.admin-auth-card {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 18%);
+  backdrop-filter: blur(32px);
+}
+.admin-auth-page input {
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+.admin-auth-page input:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 4px rgb(217 119 6 / 14%); }
+.admin-auth-primary {
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent));
+  color: #fff;
+  box-shadow: 0 16px 34px rgb(217 119 6 / 22%);
+}
+html.dark .admin-auth-primary { color: #000; }
+.admin-dashboard .admin-luxury-header {
+  border-bottom: 1px solid var(--border) !important;
+  background: color-mix(in srgb, var(--bg-surface) 72%, transparent) !important;
+  color: var(--text-primary) !important;
+  backdrop-filter: blur(28px);
+}
+.admin-dashboard .admin-stat-card strong,
+.admin-dashboard .reservation-summary-card strong,
+.admin-dashboard .weekly-field-summary b { color: var(--text-primary) !important; }
+.admin-dashboard .reservation-cell-booked,
+.admin-dashboard .reservation-cell-subscriber {
+  border: 1px solid rgb(16 185 129 / 40%) !important;
+  background: rgb(16 185 129 / 10%) !important;
+  color: #34d399 !important;
+}
+html:not(.dark) .admin-dashboard .reservation-cell-booked,
+html:not(.dark) .admin-dashboard .reservation-cell-subscriber {
+  color: #047857 !important;
+}
+
+@media (max-width: 640px) {
+  .home-page .schedule-days { gap: .35rem !important; padding: .45rem !important; }
+  .home-page .schedule-days > button { min-width: 0 !important; }
+}
+
+/* Emergency layout correction: one stable capsule, split hero, readable booking grid. */
+.home-page .site-header {
+  position: fixed !important;
+  top: 1rem !important;
+  right: auto !important;
+  left: 50% !important;
+  width: 94% !important;
+  max-width: 72rem !important;
+  transform: none !important;
+  overflow: visible !important;
+  border: 1px solid rgb(0 0 0 / 10%) !important;
+  border-radius: 9999px !important;
+  background: rgb(255 255 255 / 85%) !important;
+  box-shadow: 0 18px 45px rgb(15 23 42 / 14%) !important;
+  backdrop-filter: blur(24px) saturate(150%) !important;
+}
+html.dark .home-page .site-header {
+  border-color: rgb(255 255 255 / 15%) !important;
+  background: rgb(24 24 27 / 85%) !important;
+  box-shadow: 0 20px 55px rgb(0 0 0 / 45%) !important;
+}
+.home-page .site-header > nav,
+html:not(.dark) .home-page .site-header > nav {
+  width: 100% !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+.home-page .site-header .header-nav-tab {
+  color: var(--text-secondary) !important;
+  font-weight: 700 !important;
+}
+.home-page .site-header .header-nav-tab:hover {
+  border-color: rgb(5 150 105 / 20%) !important;
+  background: rgb(5 150 105 / 9%) !important;
+  color: var(--accent) !important;
+}
+.home-page .hero-actions > span {
+  display: flex;
+  width: 100%;
+}
+.home-page .hero-actions .apple-button {
+  width: 100%;
+  min-height: 3.25rem;
+  justify-content: center;
+}
+.home-page .home-photo-card {
+  border: 2px solid rgb(16 185 129 / 30%) !important;
+  background: #18181b !important;
+  box-shadow: 0 30px 80px rgb(4 120 87 / 20%) !important;
+}
+.home-page .home-photo-card::before { display: none !important; }
+.home-page .home-booking-shell {
+  overflow: hidden !important;
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--border)) !important;
+}
+.home-page .schedule-days {
+  max-width: none;
+  background: var(--bg-subtle) !important;
+}
+.home-page .schedule-days .home-chip {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+}
+.home-page .schedule-slot {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 5px 16px rgb(15 23 42 / 6%) !important;
+}
+.home-page .schedule-slot-locked {
+  border-color: var(--border) !important;
+  background: var(--bg-subtle) !important;
+  color: var(--text-secondary) !important;
+  opacity: .65 !important;
+}
+html.dark .home-page .schedule-days,
+html.dark .home-page .schedule-slot-locked { background: rgb(255 255 255 / 6%) !important; }
+html.dark .home-page .schedule-days .home-chip,
+html.dark .home-page .schedule-slot { background: rgb(255 255 255 / 5%) !important; }
+
+main#top > #rezervasyon { order: 2 !important; }
+main#top > #paketler { order: 3 !important; }
+
+/* Admin Apple contrast pass: keep the operational grid bright, calm and readable. */
+.admin-dashboard {
+  background: #f5f5f7 !important;
+  color: #1d1d1f !important;
+}
+
+.admin-dashboard .admin-luxury-header {
+  border-bottom: 1px solid rgb(210 210 215 / 72%) !important;
+  background: rgb(255 255 255 / 86%) !important;
+  box-shadow: 0 8px 28px rgb(15 23 42 / 7%) !important;
+  color: #1d1d1f !important;
+  backdrop-filter: blur(24px) saturate(150%) !important;
+}
+
+.admin-dashboard .admin-luxury-brand,
+.admin-dashboard .admin-luxury-brand b {
+  color: #1d1d1f !important;
+}
+
+.admin-dashboard .admin-luxury-brand span {
+  border: 1px solid rgb(5 150 105 / 22%);
+  background: rgb(5 150 105 / 11%) !important;
+  color: #047857 !important;
+}
+
+.admin-dashboard .admin-luxury-header a:not(.admin-luxury-brand),
+.admin-dashboard .admin-luxury-header button {
+  color: #3f3f46 !important;
+  transition: background-color 180ms ease-out, color 180ms ease-out, transform 180ms ease-out;
+}
+
+.admin-dashboard .admin-luxury-header a:not(.admin-luxury-brand):hover,
+.admin-dashboard .admin-luxury-header button:hover {
+  background: rgb(5 150 105 / 9%);
+  color: #047857 !important;
+}
+
+.admin-dashboard .reservation-page {
+  background: #f5f5f7 !important;
+  color: #1d1d1f !important;
+}
+
+.admin-dashboard .reservation-page h1 {
+  color: #1d1d1f !important;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.admin-dashboard .reservation-page > .reservation-page-frame > div:first-child > div:first-child > p {
+  color: #047857 !important;
+}
+
+.admin-dashboard .reservation-page-frame > div:first-child > div:first-child > div,
+.admin-dashboard .reservation-page-frame > div:first-child > div:first-child button {
+  border-color: #d2d2d7 !important;
+  background: rgb(255 255 255 / 92%) !important;
+  color: #3f3f46 !important;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 5%);
+}
+
+.admin-dashboard .reservation-page-frame > div:first-child > div:first-child button:hover {
+  border-color: #10b981 !important;
+  color: #047857 !important;
+  transform: scale(.98);
+}
+
+.admin-dashboard .reservation-clock {
+  border: 1px solid rgb(5 150 105 / 26%);
+  background: #10b981 !important;
+  color: #052e1b !important;
+  box-shadow: 0 8px 18px rgb(16 185 129 / 20%);
+}
+
+.admin-dashboard .reservation-summary-card,
+.admin-dashboard .admin-stat-card {
+  border-color: #d2d2d7 !important;
+  background: rgb(255 255 255 / 94%) !important;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 6%) !important;
+}
+
+.admin-dashboard .reservation-summary-card span,
+.admin-dashboard .reservation-summary-card small,
+.admin-dashboard .admin-stat-card p,
+.admin-dashboard .weekly-field-summary small,
+.admin-dashboard .weekly-field-summary-heading span {
+  color: #6e6e73 !important;
+}
+
+.admin-dashboard .reservation-summary-card strong,
+.admin-dashboard .admin-stat-card strong,
+.admin-dashboard .weekly-field-summary b {
+  color: #1d1d1f !important;
+}
+
+.admin-dashboard .reservation-scroll {
+  border-color: #d2d2d7 !important;
+  background: #fff !important;
+  box-shadow: 0 12px 30px rgb(15 23 42 / 6%) !important;
+}
+
+.admin-dashboard .reservation-corner,
+.admin-dashboard .reservation-hour,
+.admin-dashboard .reservation-day,
+.admin-dashboard .reservation-cell,
+.admin-dashboard .reservation-total-cell {
+  border-color: #d2d2d7 !important;
+}
+
+.admin-dashboard .reservation-corner,
+.admin-dashboard .reservation-hour,
+.admin-dashboard .reservation-day {
+  background: #fafafa !important;
+  color: #4b5563 !important;
+}
+
+.admin-dashboard .reservation-hour-current {
+  background: #d1fae5 !important;
+  color: #065f46 !important;
+  box-shadow: inset 0 -3px 0 #059669 !important;
+}
+
+.admin-dashboard .reservation-cell {
+  background: #fff !important;
+  color: #1d1d1f !important;
+}
+
+.admin-dashboard .reservation-cell strong,
+.admin-dashboard .reservation-cell b {
+  color: #1d1d1f !important;
+}
+
+.admin-dashboard .reservation-cell span {
+  color: #6e6e73 !important;
+}
+
+.admin-dashboard .reservation-cell-booked,
+.admin-dashboard .reservation-cell-subscriber {
+  border: 2px solid #10b981 !important;
+  background: #d1fae5 !important;
+  color: #064e3b !important;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 70%), 0 5px 16px rgb(16 185 129 / 12%) !important;
+}
+
+.admin-dashboard .reservation-cell-booked strong,
+.admin-dashboard .reservation-cell-subscriber strong,
+.admin-dashboard .reservation-cell-booked b,
+.admin-dashboard .reservation-cell-subscriber b {
+  color: #065f46 !important;
+}
+
+.admin-dashboard .reservation-cell-booked span,
+.admin-dashboard .reservation-cell-subscriber span {
+  color: #047857 !important;
+}
+
+/* The active hour is always a green, readable surface, including when booked. */
+.admin-dashboard .reservation-cell-current,
+.admin-dashboard .reservation-cell-current.reservation-cell-booked,
+.admin-dashboard .reservation-cell-current.reservation-cell-subscriber {
+  border: 2px solid #059669 !important;
+  background: linear-gradient(145deg, #34d399 0%, #10b981 100%) !important;
+  color: #052e1b !important;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 38%), 0 0 0 3px rgb(16 185 129 / 12%), 0 10px 24px rgb(16 185 129 / 20%) !important;
+}
+
+.admin-dashboard .reservation-cell-current strong,
+.admin-dashboard .reservation-cell-current b,
+.admin-dashboard .reservation-cell-current span,
+.admin-dashboard .reservation-cell-current em {
+  color: #052e1b !important;
+}
+
+html.dark .admin-dashboard {
+  background: #0b0f0d !important;
+  color: #f5f5f7 !important;
+}
+
+html.dark .admin-dashboard .admin-luxury-header {
+  border-color: rgb(110 231 183 / 18%) !important;
+  background: rgb(15 23 20 / 88%) !important;
+  color: #f5f5f7 !important;
+}
+
+html.dark .admin-dashboard .admin-luxury-brand,
+html.dark .admin-dashboard .admin-luxury-brand b,
+html.dark .admin-dashboard .admin-luxury-header a:not(.admin-luxury-brand),
+html.dark .admin-dashboard .admin-luxury-header button {
+  color: #f5f5f7 !important;
+}
+
+html.dark .admin-dashboard .reservation-page {
+  background: #0b0f0d !important;
+  color: #f5f5f7 !important;
+}
+
+html.dark .admin-dashboard .reservation-page h1,
+html.dark .admin-dashboard .reservation-summary-card strong,
+html.dark .admin-dashboard .admin-stat-card strong,
+html.dark .admin-dashboard .weekly-field-summary b,
+html.dark .admin-dashboard .reservation-cell strong,
+html.dark .admin-dashboard .reservation-cell b {
+  color: #f5f5f7 !important;
+}
+
+html.dark .admin-dashboard .reservation-scroll,
+html.dark .admin-dashboard .reservation-cell,
+html.dark .admin-dashboard .reservation-summary-card,
+html.dark .admin-dashboard .admin-stat-card {
+  border-color: rgb(148 163 184 / 24%) !important;
+  background: #151b18 !important;
+}
+
+html.dark .admin-dashboard .reservation-corner,
+html.dark .admin-dashboard .reservation-hour,
+html.dark .admin-dashboard .reservation-day {
+  background: #111714 !important;
+  color: #cbd5d1 !important;
+}
+
+html.dark .admin-dashboard .reservation-cell-current,
+html.dark .admin-dashboard .reservation-cell-current.reservation-cell-booked,
+html.dark .admin-dashboard .reservation-cell-current.reservation-cell-subscriber {
+  border-color: #34d399 !important;
+  background: linear-gradient(145deg, #34d399 0%, #059669 100%) !important;
+  color: #032015 !important;
+}
+
+/* Explicit occupied state prevents legacy theme rules from darkening a booked hour. */
+html:not(.dark) .admin-dashboard .reservation-cell-occupied,
+html:not(.dark) .admin-dashboard .reservation-cell-occupied.reservation-cell-booked,
+html:not(.dark) .admin-dashboard .reservation-cell-occupied.reservation-cell-subscriber {
+  border: 2px solid #10b981 !important;
+  background: #b7f7d0 !important;
+  color: #064e3b !important;
+  opacity: 1 !important;
+  filter: none !important;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 72%), 0 6px 18px rgb(16 185 129 / 16%) !important;
+}
+
+html:not(.dark) .admin-dashboard .reservation-cell-occupied strong,
+html:not(.dark) .admin-dashboard .reservation-cell-occupied b {
+  color: #064e3b !important;
+  opacity: 1 !important;
+}
+
+html:not(.dark) .admin-dashboard .reservation-cell-occupied span,
+html:not(.dark) .admin-dashboard .reservation-cell-occupied em {
+  color: #047857 !important;
+  opacity: 1 !important;
+}
+
+.admin-dashboard .reservation-page,
+.admin-dashboard .reservation-page * {
+  filter: none;
+}
+
+.admin-dashboard .reservation-page .reservation-corner,
+.admin-dashboard .reservation-page .reservation-hour,
+.admin-dashboard .reservation-page .reservation-day,
+.admin-dashboard .reservation-page .reservation-total-cell {
+  font-weight: 700;
+  opacity: 1 !important;
+}
+
+html:not(.dark) .admin-dashboard .reservation-page .reservation-corner,
+html:not(.dark) .admin-dashboard .reservation-page .reservation-hour,
+html:not(.dark) .admin-dashboard .reservation-page .reservation-day,
+html:not(.dark) .admin-dashboard .reservation-page .reservation-total-cell {
+  color: #374151 !important;
+}
+
+html:not(.dark) .admin-dashboard .reservation-page .reservation-cell {
+  border-color: #cbd5e1 !important;
+  opacity: 1 !important;
+}
+
+html:not(.dark) .admin-dashboard .reservation-page .reservation-cell:not(.reservation-cell-occupied) {
+  color: #1f2937 !important;
+}
+
+/* The admin toolbar must remain visible when global dark-mode utility rules touch bg-white. */
+.admin-dashboard .reservation-toolbar {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.admin-dashboard .reservation-week-range {
+  border: 1px solid #d2d2d7 !important;
+  background: #ffffff !important;
+  color: #1d1d1f !important;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 7%) !important;
+}
+
+.admin-dashboard .reservation-week-actions button {
+  display: inline-flex;
+  min-height: 36px;
+  min-width: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c7cbd1 !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  opacity: 1 !important;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 8%) !important;
+}
+
+.admin-dashboard .reservation-week-actions button svg {
+  color: #1f2937 !important;
+  opacity: 1 !important;
+  stroke-width: 2.2;
+}
+
+.admin-dashboard .reservation-week-actions button:hover {
+  border-color: #059669 !important;
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  transform: scale(.98);
+}
+
+.admin-dashboard .reservation-week-actions button:hover svg {
+  color: #047857 !important;
+}
+
+/* Shared Apple light surface for admin sub-pages that do not use the dashboard shell. */
+.admin-page.admin-payments-page {
+  background: #f5f5f7 !important;
+  color: #1d1d1f !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.admin-payments-page > div > div:first-child a,
+.admin-payments-page > div > div:first-child a:last-child {
+  color: #047857 !important;
+  opacity: 1 !important;
+}
+
+.admin-payments-page > div > div:first-child a:last-child {
+  border-color: #d2d2d7 !important;
+  background: #ffffff !important;
+  color: #374151 !important;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 6%);
+}
+
+.admin-payments-page h1,
+.admin-payments-page h2,
+.admin-payments-page article p.font-extrabold {
+  color: #1d1d1f !important;
+  opacity: 1 !important;
+}
+
+.admin-payments-page > div > div:nth-child(2) > p:first-child,
+.admin-payments-page > div > div:nth-child(2) h1 {
+  color: #1d1d1f !important;
+}
+
+.admin-payments-page > div > div:nth-child(2) > p:first-child {
+  color: #047857 !important;
+}
+
+.admin-payments-page > div > div:nth-child(2) > p:last-child,
+.admin-payments-page .text-\[var\(--muted\)\],
+.admin-payments-page article p.text-sm {
+  color: #4b5563 !important;
+  opacity: 1 !important;
+}
+
+.admin-payments-page section,
+.admin-payments-page article,
+.admin-payments-page > div > p {
+  border-color: #d2d2d7 !important;
+  background: #ffffff !important;
+  color: #1d1d1f !important;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 6%) !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.admin-payments-page section h2,
+.admin-payments-page section p,
+.admin-payments-page article p,
+.admin-payments-page article strong {
+  opacity: 1 !important;
+}
+
+.admin-payments-page input {
+  border-color: #b8c0ca !important;
+  background: #ffffff !important;
+  color: #1d1d1f !important;
+  opacity: 1 !important;
+}
+
+.admin-payments-page input::placeholder {
+  color: #6b7280 !important;
+  opacity: 1 !important;
+}
+
+.admin-payments-page input:focus {
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 4px rgb(16 185 129 / 14%) !important;
+}
+
+.admin-payments-page button {
+  opacity: 1 !important;
+  transition: transform 180ms ease-out, filter 180ms ease-out, background-color 180ms ease-out;
+}
+
+.admin-payments-page button:hover {
+  filter: brightness(.96);
+  transform: translateY(-1px);
+}
+
+.admin-payments-page button:active {
+  transform: scale(.98);
+}
+
+.admin-payments-page .text-\[var\(--green\)\] {
+  color: #047857 !important;
+}
+
+.admin-payments-page button[class*="bg-\[var\(--green\)\]"] {
+  background: #10b981 !important;
+  color: #052e1b !important;
+  box-shadow: 0 8px 18px rgb(16 185 129 / 18%);
+}
+
+.admin-payments-page button[class*="bg-\[\#fff1c9\]"] {
+  border: 1px solid #f0c36a !important;
+  background: #fff4d6 !important;
+  color: #8a5a00 !important;
+}
+
+.admin-payments-page button[class*="border"]:not([class*="bg-\[var\(--green\)\]"]) {
+  border-color: #c7cbd1 !important;
+  background: #ffffff !important;
+  color: #374151 !important;
+}
+
+html.dark .admin-page.admin-payments-page {
+  background: #f5f5f7 !important;
+  color: #1d1d1f !important;
+}
+
+.booking-action-feedback {
+  margin: 0 0 4px;
+  border: 1px solid #a7f3d0;
+  border-radius: 12px;
+  background: #ecfdf5;
+  padding: 12px 14px;
+  color: #065f46;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.booking-action-feedback-error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+@media (max-width: 767px) {
+  .home-page .site-header {
+    top: .75rem !important;
+    width: 94% !important;
+    padding: .65rem 1rem !important;
+  }
+}
+
+/* Field-specific interpretation of the attached Apple stage reference. */
+html.dark .home-page {
+  background: #000 !important;
+  color: #f5f5f7 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+}
+html.dark .home-page .home-section,
+html.dark .home-page .site-footer { background: #000 !important; color: #f5f5f7 !important; }
+html.dark .home-page .site-header {
+  border-color: rgb(255 255 255 / 12%) !important;
+  background: rgb(14 14 14 / 90%) !important;
+  box-shadow: 0 0 0 1px rgb(40 40 40 / 90%) !important;
+}
+html.dark .home-page .home-photo-card {
+  border-color: rgb(16 185 129 / 55%) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 0 0 1px rgb(40 40 40 / 90%) !important;
+}
+html.dark .home-page .home-photo-card img { filter: saturate(1.15) contrast(1.06); }
+html.dark .home-page .pricing-card,
+html.dark .home-page .home-booking-shell,
+html.dark .home-page .booking-form-card,
+html.dark .home-page .home-card,
+html.dark .home-page .map-frame {
+  border-color: #333336 !important;
+  border-radius: 28px !important;
+  background: #1d1d1f !important;
+  box-shadow: none !important;
+}
+html.dark .home-page .pricing-card:hover,
+html.dark .home-page .home-booking-shell:hover { background: #1d1d1f !important; }
+html.dark .home-page .home-title,
+html.dark .home-page h1,
+html.dark .home-page h2,
+html.dark .home-page h3 { color: #f5f5f7 !important; }
+html.dark .home-page .home-muted,
+html.dark .home-page p,
+html.dark .home-page label { color: #86868b !important; }
+html.dark .home-page .home-kicker,
+html.dark .home-page .schedule-row-label,
+html.dark .home-page .pricing-card-accent { color: #34d399 !important; }
+html.dark .home-page .schedule-days {
+  border-color: #333336 !important;
+  border-radius: 20px !important;
+  background: #0e0e0e !important;
+  box-shadow: none !important;
+}
+html.dark .home-page .schedule-days .home-chip,
+html.dark .home-page .schedule-slot {
+  border-color: #333336 !important;
+  border-radius: 14px !important;
+  background: #000 !important;
+  color: #f5f5f7 !important;
+  box-shadow: none !important;
+}
+html.dark .home-page .schedule-days .home-chip-active,
+html.dark .home-page .schedule-slot-selected {
+  border-color: #10b981 !important;
+  background: #064e3b !important;
+  color: #f5f5f7 !important;
+  box-shadow: none !important;
+}
+html.dark .home-page .schedule-slot-vip {
+  border-color: rgb(251 191 36 / 60%) !important;
+  background: rgb(251 191 36 / 8%) !important;
+}
+html.dark .home-page .home-input {
+  border-color: #6e6e73 !important;
+  border-radius: 980px !important;
+  background: rgb(255 255 255 / 4%) !important;
+  color: #f5f5f7 !important;
+}
+html.dark .home-page .home-input:focus { border-color: #10b981 !important; box-shadow: 0 0 0 1px #10b981 !important; }
+html.dark .home-page .apple-button-primary,
+html.dark .home-page .apple-booking-cta {
+  border-radius: 170px !important;
+  background: #10b981 !important;
+  color: #001b12 !important;
+  box-shadow: none !important;
+}
+html.dark .home-page .apple-button-primary:hover,
+html.dark .home-page .apple-booking-cta:hover { background: #34d399 !important; }
+html.dark .home-page .apple-button-secondary {
+  border-color: #6e6e73 !important;
+  border-radius: 9999px !important;
+  background: transparent !important;
+  color: #f5f5f7 !important;
+}
+html.dark .home-page .subscriber-summary-badge {
+  border-color: rgb(251 191 36 / 45%) !important;
+  background: transparent !important;
+  color: #fbbf24 !important;
+}
+html.dark .home-page .pricing-card-featured { border-color: #fbbf24 !important; }
+
+/* DESIGN.md faithful layer: Apple stage tokens translated to field booking. */
+html.dark .home-page {
+  --color-obsidian: #000000;
+  --color-graphite: #0e0e0e;
+  --color-carbon: #1d1d1f;
+  --color-steel: #333336;
+  --color-slate: #6e6e73;
+  --color-ash: #86868b;
+  --color-porcelain: #f5f5f7;
+  --color-white: #ffffff;
+  --color-apple-blue: #0071e3;
+  --color-electric-link: #2997ff;
+  --color-cobalt-link: #0066cc;
+  --color-copper-new: #b64400;
+  --color-optical-yellow: #ffd500;
+  --font-sf-pro-text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  --font-sf-pro-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+  --radius-design-cards: 28px;
+  --radius-design-buttons: 170px;
+  --shadow-design-keyline: rgb(40 40 40) 0 0 0 1px;
+  font-family: var(--font-sf-pro-text);
+  letter-spacing: -0.224px;
+}
+html.dark .home-page h1,
+html.dark .home-page h2,
+html.dark .home-page h3,
+html.dark .home-page .display {
+  font-family: var(--font-sf-pro-display);
+  letter-spacing: -1.2px;
+}
+html.dark .home-page .luxury-gradient-text,
+html.dark .home-page .home-title span {
+  background: none !important;
+  color: #f5f5f7 !important;
+  -webkit-text-fill-color: #f5f5f7 !important;
+}
+html.dark .home-page .site-header {
+  border-radius: 20px !important;
+  box-shadow: var(--shadow-design-keyline) !important;
+  background: #0e0e0e !important;
+}
+html.dark .home-page .home-photo-card,
+html.dark .home-page .pricing-card,
+html.dark .home-page .home-card,
+html.dark .home-page .home-booking-shell,
+html.dark .home-page .booking-form-card,
+html.dark .home-page .map-frame {
+  border-radius: var(--radius-design-cards) !important;
+  box-shadow: none !important;
+}
+html.dark .home-page .home-photo-card {
+  border-color: #333336 !important;
+  background: #000 !important;
+}
+html.dark .home-page .pricing-card { background: #000 !important; }
+html.dark .home-page .home-booking-shell { background: #1d1d1f !important; }
+html.dark .home-page .schedule-days {
+  border-radius: 20px !important;
+  background: #0e0e0e !important;
+  box-shadow: var(--shadow-design-keyline) !important;
+}
+html.dark .home-page .schedule-days .home-chip,
+html.dark .home-page .schedule-slot {
+  border-radius: 14px !important;
+  border-color: #333336 !important;
+  background: #000 !important;
+  box-shadow: none !important;
+}
+html.dark .home-page .schedule-days .home-chip-active,
+html.dark .home-page .schedule-slot-selected {
+  border-color: #10b981 !important;
+  background: #064e3b !important;
+}
+html.dark .home-page .home-input {
+  border-color: #6e6e73 !important;
+  border-radius: 980px !important;
+  background: rgb(255 255 255 / 4%) !important;
+}
+html.dark .home-page .apple-button-primary,
+html.dark .home-page .apple-booking-cta {
+  border: 0 !important;
+  border-radius: var(--radius-design-buttons) !important;
+  background: #0071e3 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  font-size: 12px;
+  letter-spacing: -0.12px;
+}
+html.dark .home-page .apple-button-primary:hover,
+html.dark .home-page .apple-booking-cta:hover { background: #2997ff !important; }
+html.dark .home-page .apple-button-secondary {
+  border-radius: 9999px !important;
+  border-color: #6e6e73 !important;
+  background: transparent !important;
+  color: #f5f5f7 !important;
+  box-shadow: none !important;
+  font-size: 12px;
+  letter-spacing: -0.12px;
+}
+html.dark .home-page .subscriber-summary-badge { color: #ffd500 !important; border-color: #ffd500 !important; }
+html.dark .home-page .text-amber-400,
+html.dark .home-page .text-amber-500,
+html.dark .home-page .text-amber-600,
+html.dark .home-page .text-amber-700,
+html.dark .home-page .text-amber-800 { color: #ffd500 !important; }
+
+/* Current HIG pass: light glass chrome with a sport-specific emerald action path. */
+.home-page .site-header {
+  background: rgb(255 255 255 / 75%) !important;
+  border: 1px solid rgb(0 0 0 / 5%) !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 8%) !important;
+  backdrop-filter: blur(24px) !important;
+}
+.home-page .site-header .header-nav-tab {
+  transition: color .2s ease-out, background-color .2s ease-out, border-color .2s ease-out, transform .2s ease-out !important;
+}
+.home-page .site-header .header-nav-tab:active { transform: scale(.98); }
+.home-page .hero-title-main { color: #09090b !important; font-weight: 700; letter-spacing: -.04em; }
+.home-page .hero-gradient-text {
+  background: linear-gradient(90deg, #059669, #15803d) !important;
+  background-clip: text !important;
+  color: transparent !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.home-page .hero-primary-cta,
+.home-page .apple-button-primary.hero-primary-cta {
+  border: 0 !important;
+  background: #10b981 !important;
+  color: #052e1b !important;
+  box-shadow: 0 14px 30px rgb(16 185 129 / 25%) !important;
+  transition: transform .2s ease-out, background-color .2s ease-out, box-shadow .2s ease-out !important;
+}
+.home-page .hero-primary-cta:hover { transform: scale(1.02); background: #059669 !important; }
+.home-page .hero-primary-cta:active { transform: scale(.98); }
+.home-page .hero-actions .apple-button-secondary {
+  border: 1px solid rgb(15 23 42 / 18%) !important;
+  background: transparent !important;
+  color: #27272a !important;
+  box-shadow: none !important;
+  transition: transform .2s ease-out, background-color .2s ease-out, border-color .2s ease-out !important;
+}
+.home-page .hero-actions .apple-button-secondary:hover { border-color: rgb(15 23 42 / 30%) !important; background: rgb(244 244 245 / 70%) !important; }
+.home-page .hero-actions .apple-button-secondary:active { transform: scale(.98); }
+.home-page .hero-field-perspective { perspective: 1000px; }
+.home-page .hero-field-card {
+  transform: rotateY(-6deg) rotateX(3deg);
+  transform-style: preserve-3d;
+  border-radius: 1.5rem !important;
+  border: 1px solid rgb(255 255 255 / 20%) !important;
+  box-shadow: 0 25px 50px rgb(6 78 59 / 15%) !important;
+  transition: transform .35s ease-out;
+}
+.home-page .hero-field-card:hover { transform: rotateY(-2deg) rotateX(1deg) translateY(-4px); }
+.home-page .glass-pill-badge { background: rgb(255 255 255 / 15%) !important; backdrop-filter: blur(18px) saturate(140%); }
+html.dark .home-page .hero-title-main { color: #f4f4f5 !important; }
+html.dark .home-page .hero-actions .apple-button-secondary { color: #f5f5f7 !important; border-color: #6e6e73 !important; }
+html:not(.dark) .home-page .home-section:first-of-type h1 .hero-title-main {
+  color: #09090b !important;
+  background: none !important;
+  -webkit-text-fill-color: #09090b !important;
+}
+html:not(.dark) .home-page .home-section:first-of-type h1 .hero-gradient-text {
+  background: linear-gradient(90deg, #059669, #15803d) !important;
+  background-clip: text !important;
+  color: transparent !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
 }

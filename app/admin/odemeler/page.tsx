@@ -18,7 +18,7 @@ type Booking = {
 };
 const labels: Record<string, string> = {
   paid: "Ödendi",
-  approved: "Ödendi",
+  approved: "Onaylandı",
   deposit: "Kapora",
   proof_submitted: "Kapora",
   unpaid: "Ödenmedi",
@@ -113,28 +113,6 @@ export default function AdminPaymentsPage() {
             : row,
         ),
       );
-      if (["paid", "approved", "deposit"].includes(status)) {
-        try {
-          const res = await fetch("/api/whatsapp/booking-confirmation", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bookingId: item.id }),
-          });
-          const data = await res.json();
-          setMessage(
-            res.ok
-              ? `Durum güncellendi: ${labels[status]}. WhatsApp onay mesajı gönderildi.`
-              : `Durum güncellendi: ${labels[status]}. WhatsApp gönderilemedi: ${data.error || "Bilinmeyen hata"}`,
-          );
-        } catch (error) {
-          setMessage(
-            `Durum güncellendi: ${labels[status]}. WhatsApp gönderilemedi: ${
-              error instanceof Error ? error.message : "Bağlantı hatası"
-            }`,
-          );
-        }
-        return;
-      }
       setMessage(`Durum güncellendi: ${labels[status]}.`);
     }
   };
@@ -171,7 +149,7 @@ export default function AdminPaymentsPage() {
     );
 
   return (
-    <main className="min-h-screen bg-[#f5f7f3] px-5 py-8 text-[var(--ink)] lg:px-10">
+    <main className="admin-page admin-payments-page min-h-screen bg-[#f5f7f3] px-5 py-8 text-[var(--ink)] lg:px-10">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8 flex items-center justify-between">
           <a

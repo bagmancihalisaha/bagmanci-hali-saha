@@ -112,43 +112,25 @@ export default function AdminPage() {
     }
     try {
       const client = getSupabaseClient();
-      const { data: challenge, error: challengeError } =
-        await client.auth.mfa.challenge({ factorId: mfaFactorId });
-      if (challengeError) throw challengeError;
-      setMfaChallengeId(challenge.id);
+      let challengeId = mfaChallengeId;
+      if (mfaMode === "enroll") {
+        const { data: challenge, error: challengeError } =
+          await client.auth.mfa.challenge({ factorId: mfaFactorId });
+        if (challengeError) throw challengeError;
+        challengeId = challenge.id;
+      }
       const { error } = await client.auth.mfa.verify({
         factorId: mfaFactorId,
-        challengeId: challenge.id,
-        code: mfaCode.trim(),
+        challengeId,
+        code: mfaCode,
       });
       if (error) throw error;
       setLoggedIn(true);
       setMfaMode(null);
       setMfaCode("");
       setLoginError("");
-    } catch (error) {
-      setLoginError(
-        error instanceof Error
-          ? `Doğrulama başarısız: ${error.message}`
-          : "Kod hatalı veya süresi doldu. Yeni bir kod deneyin.",
-      );
-    }
-  };
-
-  const refreshMfaChallenge = async () => {
-    if (!mfaFactorId) return;
-    try {
-      const { data, error } = await getSupabaseClient().auth.mfa.challenge({
-        factorId: mfaFactorId,
-      });
-      if (error) throw error;
-      setMfaChallengeId(data.id);
-      setMfaCode("");
-      setLoginError("Yeni doğrulama isteği hazır. Authenticator kodunu girin.");
-    } catch (error) {
-      setLoginError(
-        error instanceof Error ? error.message : "Yeni doğrulama isteği alınamadı.",
-      );
+    } catch {
+      setLoginError("Kod hatalı veya süresi doldu. Yeni bir kod deneyin.");
     }
   };
 
@@ -160,15 +142,15 @@ export default function AdminPage() {
 
   if (!loggedIn && mfaMode)
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--green)] px-5 py-12">
-        <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl sm:p-10">
-          <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--lime)] text-[var(--green)]">
+      <main className="admin-auth-page flex min-h-screen items-center justify-center px-5 py-12">
+        <div className="admin-auth-card w-full max-w-md rounded-3xl p-8 sm:p-10">
+          <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/10 text-[var(--accent-gold)]">
             <ShieldCheck size={26} />
           </div>
           <h1 className="display text-3xl font-extrabold">
             İki aşamalı doğrulama
           </h1>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+          <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
             {mfaMode === "enroll"
               ? "Authenticator uygulamasını açıp QR kodu okutun, sonra 6 haneli kodu girin."
               : "Authenticator uygulamanızdaki 6 haneli kodu girin."}
@@ -177,11 +159,11 @@ export default function AdminPage() {
             <img
               src={mfaQrCode}
               alt="MFA QR kodu"
-              className="mx-auto my-6 h-48 w-48 rounded-xl"
+              className="mx-auto my-6 h-48 w-48 rounded-xl border border-[var(--border)] bg-white p-2"
             />
           )}
           {mfaSecret && (
-            <p className="break-all rounded-xl bg-[#f5f7f3] p-3 text-xs text-[var(--muted)]">
+            <p className="break-all rounded-xl bg-[var(--bg-subtle)] p-3 text-xs text-[var(--text-secondary)]">
               Kurulum anahtarı: {mfaSecret}
             </p>
           )}
@@ -192,21 +174,14 @@ export default function AdminPage() {
             onChange={(event) =>
               setMfaCode(event.target.value.replace(/\D/g, ""))
             }
-            className="mt-6 w-full rounded-xl border border-[var(--line)] px-4 py-3 text-center text-xl tracking-[.4em] outline-none focus:border-[var(--green)]"
+            className="mt-6 w-full rounded-xl px-4 py-3 text-center font-mono text-2xl tracking-[0.5em] outline-none"
             placeholder="000000"
           />
           <button
             onClick={verifyMfa}
-            className="mt-5 w-full rounded-full bg-[var(--green)] px-5 py-4 text-sm font-extrabold text-white"
+            className="admin-auth-primary mt-5 w-full rounded-2xl px-5 py-4 text-sm font-extrabold active:scale-[0.98]"
           >
             Kodu doğrula
-          </button>
-          <button
-            type="button"
-            onClick={refreshMfaChallenge}
-            className="mt-3 w-full rounded-full border border-[var(--line)] px-5 py-3 text-sm font-bold text-[var(--green)]"
-          >
-            Yeni doğrulama iste
           </button>
           {loginError && (
             <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">
@@ -219,22 +194,22 @@ export default function AdminPage() {
 
   if (!loggedIn)
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--green)] px-5 py-12">
-        <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl sm:p-10">
+      <main className="admin-auth-page flex min-h-screen items-center justify-center px-5 py-12">
+        <div className="admin-auth-card w-full max-w-md rounded-3xl p-8 sm:p-10">
           <a
             href="/"
-            className="mb-10 flex items-center gap-2 text-sm font-bold text-[var(--green)]"
+            className="mb-10 flex items-center gap-2 text-sm font-bold text-[var(--accent)]"
           >
             <ArrowLeft size={16} /> Siteye dön
           </a>
-          <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--lime)] text-[var(--green)]">
+          <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/10 text-[var(--accent-gold)]">
             <LockKeyhole size={26} />
           </div>
-          <p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--green)]">
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--accent)]">
             Bağmancı Halı Saha
           </p>
           <h1 className="display mt-3 text-4xl font-extrabold">Admin girişi</h1>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+          <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
             Rezervasyonları ve saha ayarlarını yönetmek için giriş yap.
           </p>
           <label className="mt-8 block text-sm font-bold">
@@ -245,7 +220,7 @@ export default function AdminPage() {
               onChange={(event) =>
                 setLoginForm({ ...loginForm, username: event.target.value })
               }
-              className="mt-2 w-full rounded-xl border border-[var(--line)] px-4 py-3 outline-none focus:border-[var(--green)]"
+              className="mt-2 w-full rounded-xl px-4 py-3 outline-none"
               placeholder="admin@ornek.com"
             />
           </label>
@@ -257,13 +232,13 @@ export default function AdminPage() {
               onChange={(event) =>
                 setLoginForm({ ...loginForm, password: event.target.value })
               }
-              className="mt-2 w-full rounded-xl border border-[var(--line)] px-4 py-3 outline-none focus:border-[var(--green)]"
+              className="mt-2 w-full rounded-xl px-4 py-3 outline-none"
               placeholder="Şifreniz"
             />
           </label>
           <button
             onClick={handleLogin}
-            className="mt-6 w-full rounded-full bg-[var(--green)] px-5 py-4 text-sm font-extrabold text-white"
+            className="admin-auth-primary mt-6 w-full rounded-2xl px-5 py-4 text-sm font-extrabold active:scale-[0.98]"
           >
             Giriş yap
           </button>
@@ -277,8 +252,8 @@ export default function AdminPage() {
     );
 
   return (
-    <main className="admin-dashboard min-h-screen bg-[#f5f7f3] text-[var(--ink)]">
-      <header className="admin-luxury-header sticky top-0 z-40 px-5 py-5 text-white lg:px-10">
+    <main className="admin-dashboard min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)]">
+      <header className="admin-luxury-header sticky top-0 z-40 px-5 py-5 text-[var(--text-primary)] lg:px-10">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between">
           <a href="/" className="admin-luxury-brand"><span><Trophy size={18} /></span> BAĞMANCI <b>ADMIN</b></a>
           <div className="hidden items-center gap-2 md:flex">
@@ -289,7 +264,7 @@ export default function AdminPage() {
             <button aria-label="Menüyü aç" className="admin-menu-button" onClick={() => setMenuOpen(!menuOpen)}><Menu size={20} /></button>
           </div>
           <nav
-            className={`${menuOpen ? "flex" : "hidden"} absolute left-4 right-4 top-20 z-10 flex-col gap-4 rounded-xl bg-white p-5 text-[var(--ink)] shadow-xl md:static md:flex md:flex-row md:items-center md:gap-6 md:bg-transparent md:p-0 md:text-white md:shadow-none`}
+            className={`${menuOpen ? "flex" : "hidden"} absolute left-4 right-4 top-20 z-10 flex-col gap-4 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-5 text-[var(--text-primary)] shadow-xl md:static md:flex md:flex-row md:items-center md:gap-6 md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
           >
             <a href="/" className="flex items-center gap-2 text-sm">
               <ArrowLeft size={16} /> Siteye dön
@@ -298,7 +273,7 @@ export default function AdminPage() {
             <a href="/admin/odemeler" className="text-sm font-bold">
               Ödeme sistemi
             </a>
-            <button type="button" onClick={signOut} className="mt-2 border-t border-[var(--line)] pt-4 text-left text-sm font-bold text-red-700 md:mt-0 md:border-0 md:pt-0 md:text-white">
+            <button type="button" onClick={signOut} className="mt-2 border-t border-[var(--border)] pt-4 text-left text-sm font-bold text-red-700 md:mt-0 md:border-0 md:pt-0 md:text-[var(--text-primary)]">
               Çıkış yap
             </button>
           </nav>
