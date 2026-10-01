@@ -248,7 +248,7 @@ async function sendBookingTemplate(
 }
 
 export function sendBookingCreatedMessage(booking: BookingConfirmation) {
-  return sendBookingTemplate(booking, "rezervasyon_olusturuldu", false);
+  return sendBookingTemplate(booking, "rezervasyon_onay", false);
 }
 
 export function sendBookingReminderMessage(booking: BookingConfirmation) {

@@ -133,12 +133,6 @@ export default function Home() {
     SubscriptionSlot[]
   >([]);
   const [form, setForm] = useState({ name: "", phone: "", subscriber: false });
-  const [otpCode, setOtpCode] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [phoneVerified, setPhoneVerified] = useState(false);
-  const [otpSeconds, setOtpSeconds] = useState(0);
-  const [otpBusy, setOtpBusy] = useState(false);
-  const [otpError, setOtpError] = useState("");
   const [subscriberVerified, setSubscriberVerified] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [profileDefaults, setProfileDefaults] = useState({
@@ -146,14 +140,6 @@ export default function Home() {
     phone: "",
   });
   const [notice, setNotice] = useState("");
-
-  useEffect(() => {
-    if (otpSeconds <= 0) return;
-    const timer = window.setInterval(() => {
-      setOtpSeconds((value) => Math.max(0, value - 1));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [otpSeconds]);
 
   const selectedLabel =
     days.find((day) => day.date === selectedDay)?.full ?? selectedDay;
@@ -273,62 +259,6 @@ export default function Home() {
       ?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const sendOtp = async () => {
-    const phone = form.phone.replace(/\s/g, "");
-    if (!form.name.trim() || !/^0\d{10}$/.test(phone)) {
-      setOtpError("Önce ad soyad ve geçerli telefon numaranızı girin.");
-      return;
-    }
-    setOtpBusy(true);
-    setOtpError("");
-    try {
-      const response = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
-      });
-      const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || "Kod gönderilemedi.");
-      setOtpSent(true);
-      setPhoneVerified(false);
-      setOtpCode("");
-      setOtpSeconds(60);
-      setNotice("Doğrulama kodu WhatsApp üzerinden gönderildi.");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Kod gönderilemedi.";
-      setOtpError(message);
-      setNotice(message);
-    } finally {
-      setOtpBusy(false);
-    }
-  };
-
-  const verifyOtp = async (value = otpCode) => {
-    const code = value.replace(/\D/g, "").slice(0, 6);
-    if (code.length !== 6) return false;
-    setOtpBusy(true);
-    setOtpError("");
-    try {
-      const response = await fetch("/api/auth/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: form.phone, code }),
-      });
-      const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || "Hatalı veya süresi dolmuş kod.");
-      setPhoneVerified(true);
-      setOtpError("");
-      setNotice("Telefon numaranız doğrulandı. Rezervasyonunuzu tamamlayabilirsiniz.");
-      return true;
-    } catch (error) {
-      setPhoneVerified(false);
-      setOtpError(error instanceof Error ? error.message : "Hatalı veya süresi dolmuş kod.");
-      return false;
-    } finally {
-      setOtpBusy(false);
-    }
-  };
-
   const submitBooking = async () => {
     if (
       !selectedSlot ||
@@ -337,14 +267,6 @@ export default function Home() {
     ) {
       setNotice("Lütfen saat, ad soyad ve 11 haneli telefon numarasını girin.");
       return;
-    }
-    if (!phoneVerified) {
-      if (!otpSent) {
-        await sendOtp();
-        return;
-      }
-      const verified = await verifyOtp();
-      if (!verified) return;
     }
     setNotice("Maç kaydı oluşturuluyor...");
     try {
@@ -382,10 +304,6 @@ export default function Home() {
       ]);
       setSelectedSlot(null);
       setForm({ name: "", phone: "", subscriber: false });
-      setOtpCode("");
-      setOtpSent(false);
-      setPhoneVerified(false);
-      setOtpSeconds(0);
       window.location.href = `/odeme?booking=${data.id}&token=${data.payment_token}`;
     } catch (error) {
       setNotice(
@@ -778,85 +696,16 @@ export default function Home() {
                 Telefon
                 <input
                   value={form.phone}
-                  disabled={otpSent && !phoneVerified}
                   onChange={(event) =>
-                    (() => {
-                      setForm({
-                        ...form,
-                        phone: event.target.value.replace(/\D/g, "").slice(0, 11),
-                      });
-                      setOtpSent(false);
-                      setPhoneVerified(false);
-                      setOtpCode("");
-                      setOtpError("");
-                    })()
+                    setForm({
+                      ...form,
+                      phone: event.target.value.replace(/\D/g, "").slice(0, 11),
+                    })
                   }
                   className="home-input mt-2 w-full rounded-xl px-4 py-3 outline-none focus:border-amber-400"
                   placeholder="05xx xxx xx xx"
                 />
               </label>
-              {!otpSent && !phoneVerified && (
-                <>
-                  <button
-                    type="button"
-                    onClick={sendOtp}
-                    disabled={otpBusy}
-                    className="otp-send-button mb-2 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-extrabold transition disabled:cursor-wait disabled:opacity-60"
-                  >
-                    {otpBusy ? "Kod gönderiliyor..." : "Doğrulama Kodu Gönder"}
-                  </button>
-                  {otpError && <p role="alert" className="otp-error-text mb-4 text-xs font-bold">{otpError}</p>}
-                </>
-              )}
-              {otpSent && !phoneVerified && (
-                <div className="otp-panel mb-5 rounded-2xl border p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-extrabold">WhatsApp kodunu girin</p>
-                      <p className="mt-1 text-xs opacity-70">Kod telefonunuza gönderildi.</p>
-                    </div>
-                    <span className="otp-countdown text-xs font-bold">
-                      {otpSeconds > 0
-                        ? `Yeniden kod iste: 00:${String(otpSeconds).padStart(2, "0")}`
-                        : "Yeni kod iste"}
-                    </span>
-                  </div>
-                  <input
-                    autoFocus
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    value={otpCode}
-                    onChange={(event) => {
-                      const value = event.target.value.replace(/\D/g, "").slice(0, 6);
-                      setOtpCode(value);
-                      setOtpError("");
-                      if (value.length === 6) void verifyOtp(value);
-                    }}
-                    className={`otp-code-input mt-3 w-full rounded-xl px-4 py-3 text-center text-xl font-black tracking-[.45em] outline-none ${otpError ? "otp-input-error" : ""}`}
-                    placeholder="000000"
-                    aria-label="6 haneli WhatsApp doğrulama kodu"
-                  />
-                  <div className="mt-3 flex items-center justify-between gap-3">
-                    <p className={`min-h-5 text-xs font-bold ${otpError ? "otp-error-text" : "opacity-0"}`}>
-                      {otpError || "Kod hazır"}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={sendOtp}
-                      disabled={otpBusy || otpSeconds > 0}
-                      className="otp-resend-button text-xs font-bold underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Yeniden gönder
-                    </button>
-                  </div>
-                </div>
-              )}
-              {phoneVerified && (
-                <div className="otp-verified mb-5 rounded-xl border px-4 py-3 text-sm font-bold">
-                  <Check size={16} /> Telefon numarası doğrulandı
-                </div>
-              )}
               {ownSubscriptionSlot(selectedSlot || "") && (
                 <div className="mb-4 inline-flex rounded-full border border-amber-400 bg-amber-500/20 px-4 py-2 text-xs font-black text-amber-800 dark:text-amber-300">
                   ★ Sizin Sabit Abonelik Saatiniz
@@ -889,7 +738,7 @@ export default function Home() {
                 onClick={submitBooking}
                 className="apple-booking-cta flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-bold transition hover:opacity-95"
               >
-                {phoneVerified ? "Rezervasyonu Onayla" : otpSent ? "Kodu Doğrula" : "Doğrulama Kodu Gönder"} <ArrowRight size={17} />
+                Rezervasyonu Oluştur <ArrowRight size={17} />
               </motion.button>
 
               {notice && (

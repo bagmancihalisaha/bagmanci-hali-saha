@@ -55,22 +55,6 @@ export async function POST(request: Request) {
     }
 
     const client = getSupabaseServerClient();
-    const { data: verifiedPhone, error: verificationError } = await client
-      .from("phone_verifications")
-      .select("id")
-      .eq("phone", phone)
-      .eq("verified", true)
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (verificationError) throw verificationError;
-    if (!verifiedPhone) {
-      return NextResponse.json(
-        { error: "Rezervasyon için telefon numaranızı WhatsApp ile doğrulayın." },
-        { status: 403 },
-      );
-    }
     const userId = await getAuthenticatedUserId(request);
     const start = hourOf(bookingTime);
     const requestedEnd = start + duration * 60;
@@ -153,11 +137,6 @@ export async function POST(request: Request) {
       .select("id, payment_token")
       .single();
     if (error) throw error;
-
-    await client
-      .from("phone_verifications")
-      .update({ verified: false })
-      .eq("id", verifiedPhone.id);
 
     let whatsappSent = false;
     try {
