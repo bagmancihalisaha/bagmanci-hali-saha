@@ -117,6 +117,8 @@ export default function AdminBookingsPage() {
     () => iso(new Date(weekStart.getFullYear(), weekStart.getMonth() + 1, 0, 12)),
     [weekStart],
   );
+  const queryStart = dates[0] < monthStart ? dates[0] : monthStart;
+  const queryEnd = dates[6] > monthEnd ? dates[6] : monthEnd;
 
   const load = async () => {
     const client = getSupabaseClient();
@@ -132,11 +134,14 @@ export default function AdminBookingsPage() {
       .select(
         "id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, subscriber",
       )
-      .gte("booking_date", monthStart)
-      .lte("booking_date", monthEnd)
+      .gte("booking_date", queryStart)
+      .lte("booking_date", queryEnd)
       .order("booking_date")
       .order("booking_time");
-    if (error) setMessage(error.message);
+    if (error) {
+      setBookings([]);
+      setMessage(`Rezervasyonlar yüklenemedi: ${error.message}`);
+    }
     else {
       setBookings(data || []);
       const { data: slots } = await client
@@ -157,7 +162,7 @@ export default function AdminBookingsPage() {
         error instanceof Error ? error.message : "Rezervasyonlar yüklenemedi.",
       ),
     );
-  }, [dates, monthStart, monthEnd]);
+  }, [dates, monthStart, monthEnd, queryStart, queryEnd]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
@@ -349,7 +354,9 @@ export default function AdminBookingsPage() {
     (total, booking) => total + Number(booking.total_amount || 0),
     0,
   );
-  const monthlyRevenue = bookings.reduce(
+  const monthlyRevenue = bookings
+    .filter((booking) => booking.booking_date >= monthStart && booking.booking_date <= monthEnd)
+    .reduce(
     (total, booking) => total + Number(booking.total_amount || 0),
     0,
   );
