@@ -32,6 +32,22 @@ const defaultReplies: ReadyReply[] = [
 
 const OTP_TTL_MINUTES = 10;
 
+function getAutoReply(text: string) {
+  if (["konum", "adres", "neresi"].some((word) => text.includes(word))) {
+    return "Merhaba! Bağmancı Halı Saha Tesislerimize bekleriz. ⚽\n📍 Adres: Bağmancı Halı Saha Tesisleri, Şanlıurfa\n🗺️ Konum Linki: https://maps.google.com/?q=Bagmanci+Hali+Saha\nTesisimizde park yeri ve kafeterya mevcuttur!";
+  }
+  if (["fiyat", "ücret"].some((word) => text.includes(word))) {
+    return "⚽ Güncel Saha Kiralama Tarifemiz:\n☀️ Gündüz Maçları: ₺1.200 / saat\n🌙 Gece (Işıklandırmalı): ₺1.800 / saat\nDüzenli haftalık aboneliklerde özel indirimler uygulanmaktadır!";
+  }
+  if (["boş saat", "rezervasyon"].some((word) => text.includes(word))) {
+    return "📅 Canlı saha takvimini incelemek ve hemen boş saatleri ayırtmak için sitemizi ziyaret edebilirsiniz:\n👉 https://bagmancihalisaha.com.tr\nTakımını topla, sahanı hemen ayır!";
+  }
+  if (["abone", "sabit"].some((word) => text.includes(word))) {
+    return "🏆 Sabit haftalık maç aboneliği talebiniz alınmıştır! Tesis yetkilimiz en kısa sürede sizinle iletişime geçecektir. Dilerseniz tercih ettiğiniz gün ve saat aralığını buradan iletebilirsiniz.";
+  }
+  return null;
+}
+
 function normalizeLocalPhone(phone: string) {
   const digits = phone.replace(/\D/g, "");
   if (/^5\d{9}$/.test(digits)) return `0${digits}`;
@@ -128,12 +144,20 @@ export async function POST(req: Request) {
           return;
         }
 
+        const autoReply = getAutoReply(incomingText);
         const matched = replies.find((reply) =>
           incomingText.includes(reply.keyword.toLocaleLowerCase("tr-TR")),
         );
+        const responseText = autoReply || matched?.response_text;
 
-        if (matched) {
-          await sendWhatsAppTextMessage({ to: from, text: matched.response_text });
+        if (responseText) {
+          const result = await sendWhatsAppTextMessage({ to: from, text: responseText });
+          if (!result.ok) {
+            console.error("WhatsApp otomatik yanıtı gönderilemedi:", {
+              status: result.status,
+              error: result.data?.error,
+            });
+          }
         }
       }),
     );
