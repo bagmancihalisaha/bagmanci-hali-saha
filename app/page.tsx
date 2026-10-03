@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { motion, MotionConfig } from "framer-motion";
 import FieldHero from "./components/FieldHero";
 import WelcomeIntro from "./components/WelcomeIntro";
@@ -155,6 +155,9 @@ export default function Home() {
   });
   const [notice, setNotice] = useState("");
   const [activeBooking, setActiveBooking] = useState<ActiveBooking | null>(null);
+  const [lookupPhone, setLookupPhone] = useState("");
+  const [lookupMessage, setLookupMessage] = useState("");
+  const [lookingUpBooking, setLookingUpBooking] = useState(false);
 
   const selectedLabel =
     days.find((day) => day.date === selectedDay)?.full ?? selectedDay;
@@ -187,6 +190,29 @@ export default function Home() {
     selectedSubscriptionPrice && tariffPrice
       ? 1700 * selectedDuration
       : tariffPrice * selectedDuration;
+  const findBookingByPhone = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const digits = lookupPhone.replace(/\D/g, "");
+    const phone = digits.length === 10 ? `0${digits}` : digits;
+    if (!/^0\d{10}$/.test(phone)) {
+      setLookupMessage("Rezervasyonda kullandığınız 11 haneli telefonu girin.");
+      return;
+    }
+    setLookingUpBooking(true);
+    setLookupMessage("");
+    try {
+      const response = await fetch(`/api/bookings/active?phone=${encodeURIComponent(phone)}`, { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Rezervasyon aranamadı.");
+      setActiveBooking(result.booking || null);
+      if (!result.booking) setLookupMessage("Bu telefon numarasıyla yaklaşan bir maç bulunamadı.");
+      else window.localStorage.setItem("bagmanci_customer_phone", phone);
+    } catch (error) {
+      setLookupMessage(error instanceof Error ? error.message : "Rezervasyon aranamadı.");
+    } finally {
+      setLookingUpBooking(false);
+    }
+  };
   const activeTotal = Number(activeBooking?.total_amount || 0);
   const activePaid = Math.min(activeTotal, Number(activeBooking?.paid_amount || (activeBooking?.payment_status === "paid" ? activeTotal : activeBooking?.deposit_amount && ["deposit", "proof_submitted"].includes(activeBooking.payment_status) ? activeBooking.deposit_amount : 0)));
   const activeRemaining = Math.max(0, activeTotal - activePaid);
@@ -633,8 +659,15 @@ export default function Home() {
                 </a>
               </article>
             ) : (
-              <div className="subscriber-summary-badge inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold">
-                ★ Sabit Abone Olun, 2. Haftadan İtibaren Maç Başı 100 TL Tasarruf Edin
+              <div className="active-booking-empty">
+                <div className="subscriber-summary-badge inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold">
+                  ★ Sabit Abone Olun, 2. Haftadan İtibaren Maç Başı 100 TL Tasarruf Edin
+                </div>
+                <form className="active-booking-lookup" onSubmit={findBookingByPhone}>
+                  <input aria-label="Rezervasyon telefonu" inputMode="tel" autoComplete="tel-national" placeholder="Rezervasyondaki telefon" value={lookupPhone} onChange={(event) => setLookupPhone(event.target.value)} />
+                  <button type="submit" disabled={lookingUpBooking}>{lookingUpBooking ? "Aranıyor..." : "Rezervasyonu bul"}</button>
+                  {lookupMessage && <span role="status">{lookupMessage}</span>}
+                </form>
               </div>
             )}
             <p className="home-kicker mb-4 mt-4 text-sm font-bold uppercase tracking-[.18em]">

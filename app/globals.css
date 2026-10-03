@@ -2852,11 +2852,19 @@ html.dark .admin-dashboard .reservation-filter-pill.is-active { border-color: #3
 .home-page .active-booking-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 15px; border-radius: 999px; background: #047857; color: #fff !important; font-size: 12px; font-weight: 750; white-space: nowrap; transition: transform .2s ease, background-color .2s ease; }
 .home-page .active-booking-action:hover { transform: translateY(-1px); background: #065f46; }
 .home-page .active-booking-action:active { transform: scale(.98); }
+.home-page .active-booking-empty { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 14px; }
+.home-page .active-booking-empty .subscriber-summary-badge { margin-bottom: 0; }
+.home-page .active-booking-lookup { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.home-page .active-booking-lookup input { width: 190px; min-height: 36px; padding: 0 11px; border: 1px solid #d4d4d8; border-radius: 999px; background: rgb(255 255 255 / 85%); color: #18181b; font-size: 12px; }
+.home-page .active-booking-lookup button { min-height: 36px; padding: 0 13px; border-radius: 999px; background: #047857; color: #fff; font-size: 12px; font-weight: 700; }
+.home-page .active-booking-lookup button:disabled { cursor: wait; opacity: .65; }
+.home-page .active-booking-lookup span { flex-basis: 100%; color: #be123c; font-size: 11px; }
 html.dark .home-page .active-booking-banner { border-color: rgb(52 211 153 / 28%); background: rgb(24 32 28 / 84%); color: #f4f4f5; box-shadow: 0 14px 40px rgb(0 0 0 / 26%); }
 html.dark .home-page .active-booking-eyebrow { color: #6ee7b7; }
 html.dark .home-page .active-booking-status-unpaid { background: #881337; color: #ffe4e6; }
 html.dark .home-page .active-booking-status-deposit { background: #78350f; color: #fef3c7; }
 html.dark .home-page .active-booking-status-paid { background: #064e3b; color: #d1fae5; }
+html.dark .home-page .active-booking-lookup input { border-color: #475569; background: #18201c; color: #f5f5f7; }
 @media (max-width: 600px) {
   .home-page .active-booking-banner { width: 100%; align-items: stretch; flex-direction: column; padding: 15px; }
   .home-page .active-booking-action { width: 100%; }

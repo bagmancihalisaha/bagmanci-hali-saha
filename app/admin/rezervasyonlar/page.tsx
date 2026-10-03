@@ -432,19 +432,6 @@ export default function AdminBookingsPage() {
           <p className="mt-4 text-xs text-[var(--muted)]">{message}</p>
         </div>
 
-        <div className="reservation-filter-row" aria-label="Haftalık rezervasyon filtreleri">
-          {([
-            ["confirmed", `✓ Onaylananlar (${confirmedCount})`],
-            ["pending", `◷ Onay Bekleyenler (${awaitingCount})`],
-            ["reminder", `♧ Hatırlatma Gönderilmeyenler (${reminderPendingCount})`],
-          ] as const).map(([filter, label]) => (
-            <button key={filter} type="button" aria-pressed={weeklyFilter === filter}
-              className={`reservation-filter-pill ${weeklyFilter === filter ? "is-active" : ""}`}
-              onClick={() => setWeeklyFilter((current) => current === filter ? null : filter)}>
-              {label}
-            </button>
-          ))}
-        </div>
       </main>
     );
 
@@ -539,6 +526,20 @@ export default function AdminBookingsPage() {
             <strong>{weekBookings.length}</strong>
             <small>Seçilen haftadaki toplam</small>
           </div>
+        </div>
+
+        <div className="reservation-filter-row" aria-label="Haftalık rezervasyon filtreleri">
+          {([
+            ["confirmed", `✓ Onaylananlar (${confirmedCount})`],
+            ["pending", `◷ Onay Bekleyenler (${awaitingCount})`],
+            ["reminder", `♧ Hatırlatma Gönderilmeyenler (${reminderPendingCount})`],
+          ] as const).map(([filter, label]) => (
+            <button key={filter} type="button" aria-pressed={weeklyFilter === filter}
+              className={`reservation-filter-pill ${weeklyFilter === filter ? "is-active" : ""}`}
+              onClick={() => setWeeklyFilter((current) => current === filter ? null : filter)}>
+              {label}
+            </button>
+          ))}
         </div>
 
         {message && (
