@@ -30,6 +30,8 @@ type Booking = {
   paid_amount: number;
   payment_status: string;
   subscriber: boolean;
+  whatsapp_confirmed?: boolean;
+  reminder_sent?: boolean;
 };
 type SubscriptionSlot = {
   id?: string;
@@ -78,6 +80,7 @@ const dateText = (date: Date) =>
 export default function AdminBookingsPage() {
   const [authorized, setAuthorized] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [weeklyFilter, setWeeklyFilter] = useState<"confirmed" | "pending" | "reminder" | null>(null);
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [subscriptionSlots, setSubscriptionSlots] = useState<
@@ -129,15 +132,25 @@ export default function AdminBookingsPage() {
       return;
     }
     setAuthorized(true);
-    const { data, error } = await client
+    const queryBookings = (withTracking: boolean) => client
       .from("booking_requests")
-      .select(
-        "id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, subscriber",
-      )
+      .select(withTracking
+        ? "id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, subscriber, whatsapp_confirmed, reminder_sent"
+        : "id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, subscriber")
       .gte("booking_date", queryStart)
       .lte("booking_date", queryEnd)
       .order("booking_date")
       .order("booking_time");
+    let trackingSchemaMissing = false;
+    const trackedResult = await queryBookings(true);
+    let data = trackedResult.data as unknown as Booking[] | null;
+    let error = trackedResult.error ? { message: trackedResult.error.message } : null;
+    if (error && /whatsapp_confirmed|reminder_sent|column/i.test(error.message)) {
+      trackingSchemaMissing = true;
+      const fallbackResult = await queryBookings(false);
+      data = fallbackResult.data as unknown as Booking[] | null;
+      error = fallbackResult.error ? { message: fallbackResult.error.message } : null;
+    }
     if (error) {
       setBookings([]);
       setMessage(`Rezervasyonlar yüklenemedi: ${error.message}`);
@@ -153,7 +166,7 @@ export default function AdminBookingsPage() {
         return { ...slot, profile, completedWeeks: count || 0 };
       }));
       setSubscriptionSlots(detailedSlots);
-      setMessage("");
+      setMessage(trackingSchemaMissing ? "Rezervasyonlar yüklendi. WhatsApp filtreleri için yeni takip alanlarını Supabase migration ile güncelleyin." : "");
     }
   };
   useEffect(() => {
@@ -200,12 +213,20 @@ export default function AdminBookingsPage() {
         const code = result.metaCode ? ` (Meta ${result.metaCode})` : "";
         throw new Error(`${result.error || "WhatsApp mesajı gönderilemedi."}${code}`);
       }
+      const updatedBooking = {
+        ...selectedBooking,
+        ...(action === "approve" ? { payment_status: "approved" } : {}),
+        ...(action === "approve" ? { whatsapp_confirmed: true } : { reminder_sent: true }),
+      };
+      setSelectedBooking(updatedBooking);
+      setBookings((current) => current.map((booking) => booking.id === updatedBooking.id ? updatedBooking : booking));
       const successMessage =
         action === "approve"
           ? `${selectedBooking.customer_name} rezervasyonu onaylandı ve WhatsApp mesajı gönderildi.`
           : `${selectedBooking.customer_name} için WhatsApp hatırlatması gönderildi.`;
-      setBookingActionMessage(successMessage);
-      setMessage(successMessage);
+      const finalMessage = result.trackingWarning ? `${successMessage} ${result.trackingWarning}` : successMessage;
+      setBookingActionMessage(finalMessage);
+      setMessage(finalMessage);
     } catch (error) {
       const errorMessage =
         approved
@@ -271,7 +292,7 @@ export default function AdminBookingsPage() {
       .from("booking_requests")
       .update({ total_amount: amount, deposit_amount: deposit, paid_amount: deposit, payment_status: bookingPaymentStatus })
       .eq("id", selectedBooking.id)
-      .select("id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, subscriber")
+      .select("id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, subscriber, whatsapp_confirmed, reminder_sent")
       .single();
     setSavingBooking(false);
     if (error) {
@@ -335,6 +356,14 @@ export default function AdminBookingsPage() {
   const currentHour = `${String(now.getHours()).padStart(2, "0")}.00-${String((now.getHours() + 1) % 24).padStart(2, "0")}.00`;
   const summaryDate = dates.includes(localDate) ? localDate : dates[0];
   const weekBookings = bookings.filter((booking) => dates.includes(booking.booking_date));
+  const confirmedCount = weekBookings.filter((booking) => booking.whatsapp_confirmed === true).length;
+  const awaitingCount = weekBookings.length - confirmedCount;
+  const reminderPendingCount = weekBookings.filter((booking) => booking.reminder_sent !== true).length;
+  const bookingMatchesFilter = (booking: Booking) =>
+    weeklyFilter === "confirmed" ? booking.whatsapp_confirmed === true
+      : weeklyFilter === "pending" ? booking.whatsapp_confirmed !== true
+        : weeklyFilter === "reminder" ? booking.reminder_sent !== true
+          : true;
   const summaryBookings = weekBookings.filter(
     (booking) => booking.booking_date === summaryDate,
   );
@@ -401,6 +430,20 @@ export default function AdminBookingsPage() {
             Admin girişine git
           </a>
           <p className="mt-4 text-xs text-[var(--muted)]">{message}</p>
+        </div>
+
+        <div className="reservation-filter-row" aria-label="Haftalık rezervasyon filtreleri">
+          {([
+            ["confirmed", `✓ Onaylananlar (${confirmedCount})`],
+            ["pending", `◷ Onay Bekleyenler (${awaitingCount})`],
+            ["reminder", `♧ Hatırlatma Gönderilmeyenler (${reminderPendingCount})`],
+          ] as const).map(([filter, label]) => (
+            <button key={filter} type="button" aria-pressed={weeklyFilter === filter}
+              className={`reservation-filter-pill ${weeklyFilter === filter ? "is-active" : ""}`}
+              onClick={() => setWeeklyFilter((current) => current === filter ? null : filter)}>
+              {label}
+            </button>
+          ))}
         </div>
       </main>
     );
@@ -545,6 +588,8 @@ export default function AdminBookingsPage() {
                     return slot.active && slot.subscription_day === weekday && slot.subscription_time.startsWith(hour.slice(0, 5).replace(".", ":"));
                   });
                   const current = date === localDate && hour === currentHour;
+                  const matchesFilter = booking ? bookingMatchesFilter(booking) : false;
+                  const paymentClass = booking ? (booking.payment_status === "paid" || booking.payment_status === "approved" ? "reservation-payment-paid" : ["deposit", "proof_submitted"].includes(booking.payment_status) ? "reservation-payment-deposit" : ["unpaid", "pending"].includes(booking.payment_status) ? "reservation-payment-unpaid" : "") : "";
                   return (
                     <div
                       key={`${date}-${hour}`}
@@ -556,7 +601,7 @@ export default function AdminBookingsPage() {
                         else if (locked) openSubscriptionDetails(locked, date, hour.slice(0, 5).replace(".", ":"));
                         else if (!booking) openManual(date, hour.slice(0, 5).replace(".", ":"));
                       }}
-                      className={`reservation-cell relative group ${current ? "reservation-cell-current" : ""} ${booking || (subscription && !booking) ? "reservation-cell-occupied" : ""} ${booking ? "reservation-cell-booked" : ""} ${booking?.subscriber || (subscription && !booking) ? "reservation-cell-subscriber" : ""}`}
+                      className={`reservation-cell relative group ${current ? "reservation-cell-current" : ""} ${booking || (subscription && !booking) ? "reservation-cell-occupied" : ""} ${booking ? "reservation-cell-booked" : ""} ${paymentClass} ${booking?.subscriber || (subscription && !booking) ? "reservation-cell-subscriber" : ""} ${weeklyFilter && booking && matchesFilter ? "reservation-filter-match" : ""} ${weeklyFilter && booking && !matchesFilter ? "reservation-filter-dim" : ""}`}
                     >
                       {booking && (
                         <>

@@ -197,18 +197,15 @@ function getBookingTemplateParameters(
   const remaining = Math.max(0, total - paid);
   const currency = (amount: number) =>
     `₺${new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 }).format(amount)}`;
-  const paymentText =
-    paid >= total && total > 0
-      ? "Tamamı Ödendi (Kalan: ₺0)"
-      : paid > 0
-        ? reminder
-          ? `${currency(paid)} Alındı - Kalan: ${currency(remaining)}`
-          : `${currency(paid)} Kapora Alındı (Kalan: ${currency(remaining)})`
-        : reminder
-          ? `Ödenmedi (Kalan: ${currency(total)})`
-          : "Ödenmedi";
+  const paymentText = paid >= total && total > 0
+    ? "Ödeme Durumu: Tamamı Ödendi (Borç Yoktur)"
+    : paid > 0 || ["deposit", "proof_submitted"].includes(booking.payment_status || "")
+      ? `Ödeme Durumu: Kapora Alındı (Kalan Bakiye: ${currency(remaining)})`
+      : `Ödeme Durumu: Ödenmedi (Kalan Tutar: ${currency(remaining)} - Lütfen maçtan önce tamamlayınız)`;
 
-  return [booking.customer_name, formattedDate, weekday, timeRange, paymentText];
+  return reminder
+    ? [booking.customer_name, formattedDate, timeRange, paymentText]
+    : [booking.customer_name, formattedDate, weekday, timeRange, paymentText];
 }
 
 async function sendBookingTemplate(

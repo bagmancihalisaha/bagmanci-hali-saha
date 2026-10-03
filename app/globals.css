@@ -2764,3 +2764,63 @@ html:not(.dark) .home-page .home-section:first-of-type h1 .hero-gradient-text {
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
 }
+
+/* Weekly scheduler: payment state stays legible in both themes despite legacy cell rules. */
+.admin-dashboard .reservation-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 14px;
+}
+.admin-dashboard .reservation-filter-pill {
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid #d4d4d8;
+  border-radius: 999px;
+  background: #fff;
+  color: #27272a;
+  font-size: 12px;
+  font-weight: 650;
+  transition: transform .18s ease, background-color .18s ease, border-color .18s ease;
+}
+.admin-dashboard .reservation-filter-pill:hover { transform: translateY(-1px); border-color: #10b981; }
+.admin-dashboard .reservation-filter-pill:active { transform: scale(.98); }
+.admin-dashboard .reservation-filter-pill.is-active { border-color: #047857; background: #047857; color: #fff; }
+.admin-dashboard .reservation-cell.reservation-payment-unpaid,
+html.dark .admin-dashboard .reservation-cell.reservation-payment-unpaid {
+  border: 2px solid #f43f5e !important;
+  background: rgb(225 29 72 / 92%) !important;
+  color: #fff !important;
+  box-shadow: 0 5px 18px rgb(225 29 72 / 25%) !important;
+}
+.admin-dashboard .reservation-cell.reservation-payment-deposit,
+html.dark .admin-dashboard .reservation-cell.reservation-payment-deposit {
+  border: 2px solid #fbbf24 !important;
+  background: #f59e0b !important;
+  color: #18120a !important;
+  font-weight: 650;
+  box-shadow: 0 5px 18px rgb(245 158 11 / 22%) !important;
+}
+.admin-dashboard .reservation-cell.reservation-payment-paid,
+html.dark .admin-dashboard .reservation-cell.reservation-payment-paid {
+  border: 2px solid #10b981 !important;
+  background: #059669 !important;
+  color: #fff !important;
+  box-shadow: 0 5px 18px rgb(5 150 105 / 25%) !important;
+}
+.admin-dashboard .reservation-cell.reservation-payment-unpaid strong,
+.admin-dashboard .reservation-cell.reservation-payment-unpaid span,
+.admin-dashboard .reservation-cell.reservation-payment-paid strong,
+.admin-dashboard .reservation-cell.reservation-payment-paid span,
+html.dark .admin-dashboard .reservation-cell.reservation-payment-unpaid strong,
+html.dark .admin-dashboard .reservation-cell.reservation-payment-unpaid span,
+html.dark .admin-dashboard .reservation-cell.reservation-payment-paid strong,
+html.dark .admin-dashboard .reservation-cell.reservation-payment-paid span { color: #fff !important; }
+.admin-dashboard .reservation-cell.reservation-payment-deposit strong,
+.admin-dashboard .reservation-cell.reservation-payment-deposit span,
+html.dark .admin-dashboard .reservation-cell.reservation-payment-deposit strong,
+html.dark .admin-dashboard .reservation-cell.reservation-payment-deposit span { color: #18120a !important; }
+.admin-dashboard .reservation-cell.reservation-filter-dim { opacity: .2 !important; filter: grayscale(.8) !important; }
+.admin-dashboard .reservation-cell.reservation-filter-match { outline: 3px solid #0ea5e9; outline-offset: -3px; z-index: 1; }
+html.dark .admin-dashboard .reservation-filter-pill { border-color: #475569; background: #17211c; color: #f5f5f7; }
+html.dark .admin-dashboard .reservation-filter-pill.is-active { border-color: #34d399; background: #047857; color: #fff; }

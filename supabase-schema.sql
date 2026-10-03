@@ -66,6 +66,8 @@ create table if not exists public.booking_requests (
 alter table public.booking_requests add column if not exists paid_amount numeric(10,2) not null default 0;
 alter table public.booking_requests add column if not exists user_id uuid references auth.users(id) on delete set null;
 alter table public.booking_requests add column if not exists subscriber boolean not null default false;
+alter table public.booking_requests add column if not exists whatsapp_confirmed boolean not null default false;
+alter table public.booking_requests add column if not exists reminder_sent boolean not null default false;
 alter table public.booking_requests add column if not exists duration_hours numeric(3,1) not null default 1;
 alter table public.booking_requests drop constraint if exists booking_requests_payment_status_check;
 alter table public.booking_requests add constraint booking_requests_payment_status_check check (payment_status in ('unpaid', 'deposit', 'paid', 'pending', 'proof_submitted', 'approved', 'rejected')) not valid;

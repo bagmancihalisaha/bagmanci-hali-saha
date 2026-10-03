@@ -76,7 +76,15 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ success: true, data: result.data, approved: action === "approve" });
+    const { error: trackingError } = await client
+      .from("booking_requests")
+      .update(action === "approve" ? { whatsapp_confirmed: true } : { reminder_sent: true })
+      .eq("id", bookingId);
+    const trackingWarning = trackingError
+      ? "WhatsApp gönderildi ancak takip alanları Supabase'de bulunamadı; supabase/migrations/20261003000000_booking_whatsapp_tracking.sql dosyasını uygulayın."
+      : undefined;
+
+    return NextResponse.json({ success: true, data: result.data, approved: action === "approve", reminderSent: action === "reminder", trackingWarning });
   } catch (error) {
     return NextResponse.json(
       {
