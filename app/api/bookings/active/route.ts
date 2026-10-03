@@ -45,7 +45,7 @@ export async function GET(request: Request) {
     query = isReference
       ? query.or(`id.eq.${ref},payment_token.eq.${ref}`)
       : query.in("phone", phoneVariants(phone));
-    const { data, error } = await query.order("booking_date").order("booking_time").limit(100);
+    const { data, error } = await query.order("booking_date").order("booking_time").limit(1000);
     if (error) throw error;
 
     const now = Date.now();
