@@ -126,7 +126,8 @@ type ActiveBooking = {
   deposit_amount: number;
   paid_amount: number;
   payment_status: string;
-  paymentUrl: string;
+  isUpcoming: boolean;
+  paymentUrl: string | null;
 };
 
 export default function Home() {
@@ -154,7 +155,7 @@ export default function Home() {
     phone: "",
   });
   const [notice, setNotice] = useState("");
-  const [activeBooking, setActiveBooking] = useState<ActiveBooking | null>(null);
+  const [activeBookings, setActiveBookings] = useState<ActiveBooking[]>([]);
   const [lookupPhone, setLookupPhone] = useState("");
   const [lookupMessage, setLookupMessage] = useState("");
   const [lookingUpBooking, setLookingUpBooking] = useState(false);
@@ -200,12 +201,14 @@ export default function Home() {
     }
     setLookingUpBooking(true);
     setLookupMessage("");
+    setActiveBookings([]);
     try {
       const response = await fetch(`/api/bookings/active?phone=${encodeURIComponent(phone)}`, { cache: "no-store" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Rezervasyon aranamadı.");
-      setActiveBooking(result.booking || null);
-      if (!result.booking) setLookupMessage("Bu telefon numarasıyla yaklaşan bir maç bulunamadı.");
+      const bookings = Array.isArray(result.bookings) ? result.bookings : result.booking ? [result.booking] : [];
+      setActiveBookings(bookings);
+      if (!bookings.length) setLookupMessage("Bu telefon numarasıyla rezervasyon bulunamadı.");
       else window.localStorage.setItem("bagmanci_customer_phone", phone);
     } catch (error) {
       setLookupMessage(error instanceof Error ? error.message : "Rezervasyon aranamadı.");
@@ -213,15 +216,6 @@ export default function Home() {
       setLookingUpBooking(false);
     }
   };
-  const activeTotal = Number(activeBooking?.total_amount || 0);
-  const activePaid = Math.min(activeTotal, Number(activeBooking?.paid_amount || (activeBooking?.payment_status === "paid" ? activeTotal : activeBooking?.deposit_amount && ["deposit", "proof_submitted"].includes(activeBooking.payment_status) ? activeBooking.deposit_amount : 0)));
-  const activeRemaining = Math.max(0, activeTotal - activePaid);
-  const activePaymentState = activeBooking?.payment_status === "paid" || (activeTotal > 0 && activeRemaining === 0)
-    ? "paid"
-    : ["deposit", "proof_submitted"].includes(activeBooking?.payment_status || "") || activePaid > 0
-      ? "deposit"
-      : "unpaid";
-
   useEffect(() => {
     const currentDay = days.find(
       (day) => day.date >= new Date().toISOString().slice(0, 10),
@@ -264,6 +258,7 @@ export default function Home() {
     const ref = params.get("ref")?.trim() || "";
     const phone = profileDefaults.phone || window.localStorage.getItem("bagmanci_customer_phone") || "";
     if (!ref && !phone) return;
+    setLookupPhone(phone);
     const query = new URLSearchParams();
     if (ref) query.set("ref", ref);
     if (phone) query.set("phone", phone);
@@ -272,8 +267,11 @@ export default function Home() {
         if (!response.ok) throw new Error("Rezervasyon kontrolü başarısız.");
         return response.json();
       })
-      .then((result) => setActiveBooking(result.booking || null))
-      .catch(() => setActiveBooking(null));
+      .then((result) => {
+        const bookings = Array.isArray(result.bookings) ? result.bookings : result.booking ? [result.booking] : [];
+        setActiveBookings(bookings);
+      })
+      .catch(() => setActiveBookings([]));
   }, [profileDefaults.phone]);
 
   useEffect(() => {
@@ -640,34 +638,57 @@ export default function Home() {
       >
         <div className="mx-auto max-w-[1240px]">
           <div className="mb-10">
-            {activeBooking ? (
-              <article className="active-booking-banner">
-                <div className="active-booking-copy">
-                  <span className="active-booking-eyebrow"><CalendarDays size={14} /> AKTİF REZERVASYON</span>
-                  <strong>{new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long" }).format(new Date(`${activeBooking.booking_date}T12:00:00`))} · {activeBooking.booking_time.slice(0, 5)}</strong>
-                  <span className="active-booking-payment-line">
-                    <span className={`active-booking-status active-booking-status-${activePaymentState}`}>
-                      {activePaymentState === "paid" ? "Tamamı ödendi" : activePaymentState === "deposit" ? "Kapora alındı" : "Ödeme bekleniyor"}
-                    </span>
-                    {activePaymentState !== "paid" && <b>Kalan ₺{activeRemaining.toLocaleString("tr-TR")}</b>}
-                  </span>
+            <div className="active-booking-empty">
+              <div className="subscriber-summary-badge inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold">
+                ★ Sabit Abone Olun, 2. Haftadan İtibaren Maç Başı 100 TL Tasarruf Edin
+              </div>
+              <form className="active-booking-lookup" onSubmit={findBookingByPhone}>
+                <input aria-label="Rezervasyon telefonu" inputMode="tel" autoComplete="tel-national" placeholder="Rezervasyondaki telefon" value={lookupPhone} onChange={(event) => setLookupPhone(event.target.value)} />
+                <button type="submit" disabled={lookingUpBooking}>{lookingUpBooking ? "Aranıyor..." : "Rezervasyonları bul"}</button>
+                {lookupMessage && <span role="status">{lookupMessage}</span>}
+              </form>
+            </div>
+            {activeBookings.length > 0 && (
+              <div className="active-booking-list" aria-live="polite">
+                <div className="active-booking-list-heading">
+                  <span>Rezervasyonlarım</span>
+                  <span>{activeBookings.length} kayıt</span>
                 </div>
-                <a className="active-booking-action" href={activeBooking.paymentUrl}>
-                  {activePaymentState === "paid" ? <Check size={17} /> : <CreditCard size={17} />}
-                  {activePaymentState === "paid" ? "Detayları Gör" : "Ödemeyi Tamamla"}
-                  <ArrowRight size={16} />
-                </a>
-              </article>
-            ) : (
-              <div className="active-booking-empty">
-                <div className="subscriber-summary-badge inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold">
-                  ★ Sabit Abone Olun, 2. Haftadan İtibaren Maç Başı 100 TL Tasarruf Edin
-                </div>
-                <form className="active-booking-lookup" onSubmit={findBookingByPhone}>
-                  <input aria-label="Rezervasyon telefonu" inputMode="tel" autoComplete="tel-national" placeholder="Rezervasyondaki telefon" value={lookupPhone} onChange={(event) => setLookupPhone(event.target.value)} />
-                  <button type="submit" disabled={lookingUpBooking}>{lookingUpBooking ? "Aranıyor..." : "Rezervasyonu bul"}</button>
-                  {lookupMessage && <span role="status">{lookupMessage}</span>}
-                </form>
+                {activeBookings.map((booking) => {
+                  const total = Number(booking.total_amount || 0);
+                  const status = booking.payment_status || "";
+                  const isPaid = status === "paid" || (total > 0 && Number(booking.paid_amount || 0) >= total);
+                  const deposit = Number(booking.deposit_amount || 0);
+                  const paid = Math.min(total, Number(booking.paid_amount || (isPaid ? total : ["deposit", "deposit_paid", "proof_submitted"].includes(status) ? deposit : 0)));
+                  const remaining = Math.max(0, total - paid);
+                  const paymentState = isPaid ? "paid" : ["deposit", "deposit_paid", "proof_submitted"].includes(status) || paid > 0 ? "deposit" : "unpaid";
+                  return (
+                    <article className="active-booking-banner" key={booking.id}>
+                      <div className="active-booking-copy">
+                        <span className={`active-booking-eyebrow${booking.isUpcoming ? "" : " active-booking-eyebrow-past"}`}>
+                          <CalendarDays size={14} /> {booking.isUpcoming ? "YAKLAŞAN MAÇ" : "GEÇMİŞ MAÇ"}
+                        </span>
+                        <strong>{new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(`${booking.booking_date}T12:00:00`))} · {booking.booking_time.slice(0, 5)}</strong>
+                        <span className="active-booking-detail">{booking.package_name} · {booking.duration_hours} saat · ₺{total.toLocaleString("tr-TR")}</span>
+                        <span className="active-booking-payment-line">
+                          <span className={`active-booking-status active-booking-status-${paymentState}`}>
+                            {paymentState === "paid" ? "Tamamı ödendi" : paymentState === "deposit" ? "Kapora alındı" : "Ödeme bekleniyor"}
+                          </span>
+                          {paymentState !== "paid" && <b>Kalan ₺{remaining.toLocaleString("tr-TR")}</b>}
+                        </span>
+                      </div>
+                      {booking.paymentUrl ? (
+                        <a className="active-booking-action" href={booking.paymentUrl}>
+                          {paymentState === "paid" ? <Check size={17} /> : <CreditCard size={17} />}
+                          {paymentState === "paid" ? "Ödeme detayları" : "Ödeme ekranına git"}
+                          <ArrowRight size={16} />
+                        </a>
+                      ) : (
+                        <span className="active-booking-no-payment">Ödeme bağlantısı bulunamadı</span>
+                      )}
+                    </article>
+                  );
+                })}
               </div>
             )}
             <p className="home-kicker mb-4 mt-4 text-sm font-bold uppercase tracking-[.18em]">

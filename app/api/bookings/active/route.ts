@@ -8,6 +8,21 @@ const normalizePhone = (value: string) => {
   return digits;
 };
 
+const phoneVariants = (phone: string) => {
+  const national = phone.slice(1);
+  const local = `${national.slice(0, 4)} ${national.slice(4, 7)} ${national.slice(7, 9)} ${national.slice(9)}`;
+  return Array.from(new Set([
+    phone,
+    national,
+    `90${national}`,
+    `+90${national}`,
+    `${phone.slice(0, 4)} ${phone.slice(4, 7)} ${phone.slice(7, 9)} ${phone.slice(9)}`,
+    `(${phone.slice(0, 4)}) ${phone.slice(4, 7)} ${phone.slice(7, 9)} ${phone.slice(9)}`,
+    `${phone.slice(0, 4)}-${phone.slice(4, 7)}-${phone.slice(7, 9)}-${phone.slice(9)}`,
+    `+90 ${local}`,
+  ]));
+};
+
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const ref = (params.get("ref") || "").trim();
@@ -17,41 +32,34 @@ export async function GET(request: Request) {
   const isReference = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ref);
 
   if (!isPhone && !isReference) {
-    return NextResponse.json({ booking: null }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ bookings: [] }, { headers: { "Cache-Control": "no-store" } });
   }
 
   try {
     const client = getSupabaseServerClient();
-    const todayParts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Europe/Istanbul",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(new Date());
-    const today = `${todayParts.find((part) => part.type === "year")?.value}-${todayParts.find((part) => part.type === "month")?.value}-${todayParts.find((part) => part.type === "day")?.value}`;
     let query = client
       .from("booking_requests")
       .select("id, payment_token, booking_date, booking_time, duration_hours, package_name, total_amount, deposit_amount, paid_amount, payment_status")
-      .gte("booking_date", today)
       .neq("payment_status", "rejected");
 
     query = isReference
       ? query.or(`id.eq.${ref},payment_token.eq.${ref}`)
-      : query.eq("phone", phone);
-    const { data, error } = await query.order("booking_date").order("booking_time").limit(20);
+      : query.in("phone", phoneVariants(phone));
+    const { data, error } = await query.order("booking_date").order("booking_time").limit(100);
     if (error) throw error;
 
     const now = Date.now();
-    const booking = (data || []).find((item) =>
-      new Date(`${item.booking_date}T${item.booking_time}:00+03:00`).getTime() > now,
-    );
-    if (!booking) {
-      return NextResponse.json({ booking: null }, { headers: { "Cache-Control": "no-store" } });
-    }
-
-    const paymentUrl = `/odeme?booking=${encodeURIComponent(booking.id)}&token=${encodeURIComponent(booking.payment_token)}`;
-    return NextResponse.json({
-      booking: {
+    const bookingStart = (booking: NonNullable<typeof data>[number]) =>
+      new Date(`${booking.booking_date}T${booking.booking_time.slice(0, 5)}:00+03:00`).getTime();
+    const bookings = (data || [])
+      .map((booking) => ({ booking, startsAt: bookingStart(booking) }))
+      .sort((a, b) => {
+        const aUpcoming = a.startsAt > now;
+        const bUpcoming = b.startsAt > now;
+        if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1;
+        return aUpcoming ? a.startsAt - b.startsAt : b.startsAt - a.startsAt;
+      })
+      .map(({ booking, startsAt }) => ({
         id: booking.id,
         booking_date: booking.booking_date,
         booking_time: booking.booking_time,
@@ -61,8 +69,14 @@ export async function GET(request: Request) {
         deposit_amount: booking.deposit_amount,
         paid_amount: booking.paid_amount,
         payment_status: booking.payment_status,
-        paymentUrl,
-      },
+        isUpcoming: startsAt > now,
+        paymentUrl: booking.payment_token
+          ? `/odeme?booking=${encodeURIComponent(booking.id)}&token=${encodeURIComponent(booking.payment_token)}`
+          : null,
+      }));
+
+    return NextResponse.json({
+      bookings,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json(
