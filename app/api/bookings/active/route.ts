@@ -11,7 +11,8 @@ const normalizePhone = (value: string) => {
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const ref = (params.get("ref") || "").trim();
-  const phone = normalizePhone(params.get("phone") || (/^\+?[\d\s()-]+$/.test(ref) ? ref : ""));
+  const refPhone = /^\+?[\d\s()-]+$/.test(ref) ? ref : "";
+  const phone = normalizePhone(refPhone || params.get("phone") || "");
   const isPhone = /^0\d{10}$/.test(phone);
   const isReference = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ref);
 

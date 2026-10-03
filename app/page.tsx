@@ -236,7 +236,7 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref")?.trim() || "";
-    const phone = window.localStorage.getItem("bagmanci_customer_phone") || profileDefaults.phone;
+    const phone = profileDefaults.phone || window.localStorage.getItem("bagmanci_customer_phone") || "";
     if (!ref && !phone) return;
     const query = new URLSearchParams();
     if (ref) query.set("ref", ref);
