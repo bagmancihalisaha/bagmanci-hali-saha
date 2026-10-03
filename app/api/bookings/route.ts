@@ -6,6 +6,26 @@ import { sendBookingCreatedMessage } from "@/lib/whatsapp";
 const VALID_DURATIONS = [1, 1.5, 2];
 const PHONE_PATTERN = /^0\d{10}$/;
 
+export async function GET(request: Request) {
+  const params = new URL(request.url).searchParams;
+  const id = params.get("booking");
+  const token = params.get("token");
+  if (!id || !token) return NextResponse.json({ error: "Ödeme bağlantısı eksik." }, { status: 400 });
+  try {
+    const { data, error } = await getSupabaseServerClient()
+      .from("booking_requests")
+      .select("id, customer_name, booking_date, booking_time, package_name, total_amount, deposit_amount, paid_amount, payment_choice, payment_status")
+      .eq("id", id)
+      .eq("payment_token", token)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return NextResponse.json({ error: "Ödeme bağlantısı geçersiz." }, { status: 404 });
+    return NextResponse.json({ booking: data }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Ödeme bilgileri alınamadı." }, { status: 500 });
+  }
+}
+
 function normalizePhone(value: unknown) {
   return String(value || "").replace(/\s/g, "");
 }

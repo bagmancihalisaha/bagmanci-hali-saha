@@ -2824,3 +2824,40 @@ html.dark .admin-dashboard .reservation-cell.reservation-payment-deposit span { 
 .admin-dashboard .reservation-cell.reservation-filter-match { outline: 3px solid #0ea5e9; outline-offset: -3px; z-index: 1; }
 html.dark .admin-dashboard .reservation-filter-pill { border-color: #475569; background: #17211c; color: #f5f5f7; }
 html.dark .admin-dashboard .reservation-filter-pill.is-active { border-color: #34d399; background: #047857; color: #fff; }
+
+.home-page .active-booking-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border: 1px solid rgb(5 150 105 / 24%);
+  border-radius: 20px;
+  background: rgb(255 255 255 / 82%);
+  color: #18181b;
+  box-shadow: 0 12px 36px rgb(15 23 42 / 8%);
+  backdrop-filter: blur(24px) saturate(150%);
+}
+.home-page .active-booking-copy { display: grid; gap: 5px; }
+.home-page .active-booking-eyebrow { display: inline-flex; align-items: center; gap: 6px; color: #047857; font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+.home-page .active-booking-copy > strong { font-size: 17px; font-weight: 750; }
+.home-page .active-booking-payment-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; }
+.home-page .active-booking-status { border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 750; }
+.home-page .active-booking-status-unpaid { background: #ffe4e6; color: #be123c; }
+.home-page .active-booking-status-deposit { background: #fef3c7; color: #92400e; }
+.home-page .active-booking-status-paid { background: #d1fae5; color: #065f46; }
+.home-page .active-booking-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 15px; border-radius: 999px; background: #047857; color: #fff !important; font-size: 12px; font-weight: 750; white-space: nowrap; transition: transform .2s ease, background-color .2s ease; }
+.home-page .active-booking-action:hover { transform: translateY(-1px); background: #065f46; }
+.home-page .active-booking-action:active { transform: scale(.98); }
+html.dark .home-page .active-booking-banner { border-color: rgb(52 211 153 / 28%); background: rgb(24 32 28 / 84%); color: #f4f4f5; box-shadow: 0 14px 40px rgb(0 0 0 / 26%); }
+html.dark .home-page .active-booking-eyebrow { color: #6ee7b7; }
+html.dark .home-page .active-booking-status-unpaid { background: #881337; color: #ffe4e6; }
+html.dark .home-page .active-booking-status-deposit { background: #78350f; color: #fef3c7; }
+html.dark .home-page .active-booking-status-paid { background: #064e3b; color: #d1fae5; }
+@media (max-width: 600px) {
+  .home-page .active-booking-banner { width: 100%; align-items: stretch; flex-direction: column; padding: 15px; }
+  .home-page .active-booking-action { width: 100%; }
+}

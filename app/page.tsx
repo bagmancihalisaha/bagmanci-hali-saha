@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Clock3,
   Crown,
+  CreditCard,
   Instagram,
   Mail,
   MapPin,
@@ -115,6 +116,19 @@ type SubscriptionSlot = {
   created_at: string;
 };
 
+type ActiveBooking = {
+  id: string;
+  booking_date: string;
+  booking_time: string;
+  duration_hours: number;
+  package_name: string;
+  total_amount: number;
+  deposit_amount: number;
+  paid_amount: number;
+  payment_status: string;
+  paymentUrl: string;
+};
+
 export default function Home() {
   const [weekOffset, setWeekOffset] = useState(0);
   const days = getWeekDays(weekOffset);
@@ -140,6 +154,7 @@ export default function Home() {
     phone: "",
   });
   const [notice, setNotice] = useState("");
+  const [activeBooking, setActiveBooking] = useState<ActiveBooking | null>(null);
 
   const selectedLabel =
     days.find((day) => day.date === selectedDay)?.full ?? selectedDay;
@@ -172,6 +187,14 @@ export default function Home() {
     selectedSubscriptionPrice && tariffPrice
       ? 1700 * selectedDuration
       : tariffPrice * selectedDuration;
+  const activeTotal = Number(activeBooking?.total_amount || 0);
+  const activePaid = Math.min(activeTotal, Number(activeBooking?.paid_amount || (activeBooking?.payment_status === "paid" ? activeTotal : activeBooking?.deposit_amount && ["deposit", "proof_submitted"].includes(activeBooking.payment_status) ? activeBooking.deposit_amount : 0)));
+  const activeRemaining = Math.max(0, activeTotal - activePaid);
+  const activePaymentState = activeBooking?.payment_status === "paid" || (activeTotal > 0 && activeRemaining === 0)
+    ? "paid"
+    : ["deposit", "proof_submitted"].includes(activeBooking?.payment_status || "") || activePaid > 0
+      ? "deposit"
+      : "unpaid";
 
   useEffect(() => {
     const currentDay = days.find(
@@ -211,6 +234,23 @@ export default function Home() {
   }, [weekOffset]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref")?.trim() || "";
+    const phone = window.localStorage.getItem("bagmanci_customer_phone") || profileDefaults.phone;
+    if (!ref && !phone) return;
+    const query = new URLSearchParams();
+    if (ref) query.set("ref", ref);
+    if (phone) query.set("phone", phone);
+    fetch(`/api/bookings/active?${query.toString()}`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Rezervasyon kontrolü başarısız.");
+        return response.json();
+      })
+      .then((result) => setActiveBooking(result.booking || null))
+      .catch(() => setActiveBooking(null));
+  }, [profileDefaults.phone]);
+
+  useEffect(() => {
     getSupabaseClient()
       .auth.getUser()
       .then(async ({ data }) => {
@@ -238,6 +278,8 @@ export default function Home() {
           name: profile?.full_name || data.user.user_metadata?.full_name || "",
           phone: profile?.phone || data.user.user_metadata?.phone || "",
         });
+        const savedPhone = profile?.phone || data.user.user_metadata?.phone;
+        if (savedPhone) window.localStorage.setItem("bagmanci_customer_phone", savedPhone.replace(/\s/g, ""));
 
         setForm((current) => ({
           ...current,
@@ -297,6 +339,7 @@ export default function Home() {
         throw new Error(result.error || "Rezervasyon oluşturulamadı.");
       }
       const data = result.booking;
+      window.localStorage.setItem("bagmanci_customer_phone", form.phone.replace(/\D/g, ""));
 
       setBooked((current) => [
         ...current,
@@ -571,9 +614,29 @@ export default function Home() {
       >
         <div className="mx-auto max-w-[1240px]">
           <div className="mb-10">
-            <div className="subscriber-summary-badge inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold">
-              ★ Sabit Abone Olun, 2. Haftadan İtibaren Maç Başı 100 TL Tasarruf Edin
-            </div>
+            {activeBooking ? (
+              <article className="active-booking-banner">
+                <div className="active-booking-copy">
+                  <span className="active-booking-eyebrow"><CalendarDays size={14} /> AKTİF REZERVASYON</span>
+                  <strong>{new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long" }).format(new Date(`${activeBooking.booking_date}T12:00:00`))} · {activeBooking.booking_time.slice(0, 5)}</strong>
+                  <span className="active-booking-payment-line">
+                    <span className={`active-booking-status active-booking-status-${activePaymentState}`}>
+                      {activePaymentState === "paid" ? "Tamamı ödendi" : activePaymentState === "deposit" ? "Kapora alındı" : "Ödeme bekleniyor"}
+                    </span>
+                    {activePaymentState !== "paid" && <b>Kalan ₺{activeRemaining.toLocaleString("tr-TR")}</b>}
+                  </span>
+                </div>
+                <a className="active-booking-action" href={activeBooking.paymentUrl}>
+                  {activePaymentState === "paid" ? <Check size={17} /> : <CreditCard size={17} />}
+                  {activePaymentState === "paid" ? "Detayları Gör" : "Ödemeyi Tamamla"}
+                  <ArrowRight size={16} />
+                </a>
+              </article>
+            ) : (
+              <div className="subscriber-summary-badge inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold">
+                ★ Sabit Abone Olun, 2. Haftadan İtibaren Maç Başı 100 TL Tasarruf Edin
+              </div>
+            )}
             <p className="home-kicker mb-4 mt-4 text-sm font-bold uppercase tracking-[.18em]">
               Canlı takvim
             </p>
