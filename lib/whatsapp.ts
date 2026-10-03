@@ -3,7 +3,7 @@
  */
 
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN;
 const API_VERSION = process.env.WHATSAPP_API_VERSION || "v25.0";
 const BOOKING_TEMPLATE_LANGUAGE =
   process.env.WHATSAPP_BOOKING_TEMPLATE_LANGUAGE ||
@@ -20,6 +20,7 @@ export interface SendTemplateOptions {
 export interface SendTextMessageOptions {
   to: string;
   text: string;
+  apiVersion?: string;
 }
 
 export type WhatsAppTemplateComponent = {
@@ -74,7 +75,7 @@ function missingConfigResult(): {
     data: {
       error: {
         message:
-          "WhatsApp ortam değişkenleri eksik: WHATSAPP_PHONE_NUMBER_ID ve WHATSAPP_ACCESS_TOKEN gerekli.",
+          "WhatsApp ortam değişkenleri eksik: WHATSAPP_PHONE_NUMBER_ID ve WHATSAPP_TOKEN (veya WHATSAPP_ACCESS_TOKEN) gerekli.",
       },
     },
   };
@@ -129,13 +130,13 @@ export async function sendWhatsAppTemplateMessage({
 /**
  * WhatsApp Serbest Metin Mesajı Gönder (Müşteri son 24 saatte mesaj yazdıysa geçerlidir)
  */
-export async function sendWhatsAppTextMessage({ to, text }: SendTextMessageOptions) {
+export async function sendWhatsAppTextMessage({ to, text, apiVersion }: SendTextMessageOptions) {
   if (!WHATSAPP_PHONE_NUMBER_ID || !WHATSAPP_ACCESS_TOKEN) {
     return missingConfigResult();
   }
 
   const formattedPhone = formatPhoneNumber(to);
-  const url = `https://graph.facebook.com/${API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/${apiVersion || API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
   const response = await fetch(url, {
     method: "POST",

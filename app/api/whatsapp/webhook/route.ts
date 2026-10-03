@@ -3,50 +3,10 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseAdmin";
 import { sendWhatsAppTextMessage } from "@/lib/whatsapp";
 
-type ReadyReply = {
-  keyword: string;
-  response_text: string;
-  active: boolean;
-};
-
-const defaultReplies: ReadyReply[] = [
-  {
-    keyword: "fiyat",
-    response_text:
-      "Gunduz tarifesi 1200 TL, gece tarifesi 1800 TL. Rezervasyon icin web sitemizden gun ve saat secebilirsiniz.",
-    active: true,
-  },
-  {
-    keyword: "rezervasyon",
-    response_text:
-      "Rezervasyon icin web sitesindeki takvimden musait gun ve saati secmeniz yeterli. Odeme/dekont sonrasi kaydiniz kesinlesir.",
-    active: true,
-  },
-  {
-    keyword: "adres",
-    response_text:
-      "Bagmanci Hali Saha Sanliurfa. Konum icin web sitemizdeki iletisim bolumunu acabilirsiniz.",
-    active: true,
-  },
-];
-
 const OTP_TTL_MINUTES = 10;
 
-function getAutoReply(text: string) {
-  if (["konum", "adres", "neresi"].some((word) => text.includes(word))) {
-    return "Merhaba! Bağmancı Halı Saha Tesislerimize bekleriz. ⚽\n📍 Adres: Bağmancı Halı Saha Tesisleri, Şanlıurfa\n🗺️ Konum Linki: https://maps.google.com/?q=Bagmanci+Hali+Saha\nTesisimizde park yeri ve kafeterya mevcuttur!";
-  }
-  if (["fiyat", "ücret"].some((word) => text.includes(word))) {
-    return "⚽ Güncel Saha Kiralama Tarifemiz:\n☀️ Gündüz Maçları: ₺1.200 / saat\n🌙 Gece (Işıklandırmalı): ₺1.800 / saat\nDüzenli haftalık aboneliklerde özel indirimler uygulanmaktadır!";
-  }
-  if (["boş saat", "rezervasyon"].some((word) => text.includes(word))) {
-    return "📅 Canlı saha takvimini incelemek ve hemen boş saatleri ayırtmak için sitemizi ziyaret edebilirsiniz:\n👉 https://bagmancihalisaha.com.tr\nTakımını topla, sahanı hemen ayır!";
-  }
-  if (["abone", "sabit"].some((word) => text.includes(word))) {
-    return "🏆 Sabit haftalık maç aboneliği talebiniz alınmıştır! Tesis yetkilimiz en kısa sürede sizinle iletişime geçecektir. Dilerseniz tercih ettiğiniz gün ve saat aralığını buradan iletebilirsiniz.";
-  }
-  return null;
-}
+const WELCOME_REPLY =
+  "Merhaba! ⚽ Bağmancı Halı Saha canlı rezervasyon sistemine hoş geldiniz.\nCanlı saha durumunu görmek ve hemen rezervasyon yapmak için:\n👉 https://bagmancihalisaha.com.tr";
 
 function normalizeLocalPhone(phone: string) {
   const digits = phone.replace(/\D/g, "");
@@ -59,6 +19,7 @@ function normalizeLocalPhone(phone: string) {
 function hashCode(phone: string, code: string) {
   const secret =
     process.env.WHATSAPP_OTP_SECRET ||
+    process.env.WHATSAPP_TOKEN ||
     process.env.WHATSAPP_ACCESS_TOKEN ||
     "local-dev-secret";
   return createHash("sha256").update(`${phone}:${code}:${secret}`).digest("hex");
@@ -124,49 +85,41 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true });
     }
 
-    const client = getSupabaseServerClient();
-    const { data } = await client
-      .from("whatsapp_ready_replies")
-      .select("keyword, response_text, active")
-      .eq("active", true)
-      .order("priority", { ascending: true });
-    const replies = data?.length ? data : defaultReplies;
-
     await Promise.all(
       messages.map(async (message: any) => {
-        const from = message.from;
-        const incomingText = String(message.text?.body || "").toLocaleLowerCase("tr-TR");
+        if (message.type !== "text") return;
+        const from = String(message.from || "").trim();
+        const incomingText = String(message.text?.body || "").trim();
         if (!from || !incomingText) return;
 
-        if (incomingText.trim() === "kod" || incomingText.trim().startsWith("kod ")) {
-          console.log("WhatsApp OTP isteği alındı:", { from });
-          await sendOtpReply(from);
-          return;
-        }
+        try {
+          if (/^kod(?:\s|$)/i.test(incomingText)) {
+            await sendOtpReply(from);
+            return;
+          }
 
-        const autoReply = getAutoReply(incomingText);
-        const matched = replies.find((reply) =>
-          incomingText.includes(reply.keyword.toLocaleLowerCase("tr-TR")),
-        );
-        const responseText = autoReply || matched?.response_text;
-
-        if (responseText) {
-          const result = await sendWhatsAppTextMessage({ to: from, text: responseText });
+          const result = await sendWhatsAppTextMessage({
+            to: from,
+            text: WELCOME_REPLY,
+            apiVersion: "v21.0",
+          });
           if (!result.ok) {
-            console.error("WhatsApp otomatik yanıtı gönderilemedi:", {
+            console.error("WhatsApp karşılama yanıtı gönderilemedi:", {
               status: result.status,
               error: result.data?.error,
             });
           }
+        } catch (error) {
+          console.error("WhatsApp gelen mesajı yanıtlanamadı:", {
+            error: error instanceof Error ? error.message : "Bilinmeyen hata",
+          });
         }
       }),
     );
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Webhook işlenemedi." },
-      { status: 500 },
-    );
+    console.error("WhatsApp webhook payload işlenemedi:", error);
+    return NextResponse.json({ success: true });
   }
 }
