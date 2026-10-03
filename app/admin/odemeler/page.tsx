@@ -19,8 +19,8 @@ type Booking = {
 const labels: Record<string, string> = {
   paid: "Ödendi",
   approved: "Onaylandı",
-  deposit: "Kapora",
-  proof_submitted: "Kapora",
+  deposit: "Kapora alındı",
+  proof_submitted: "Dekont gönderildi · Onay bekliyor",
   unpaid: "Ödenmedi",
   pending: "Ödenmedi",
   rejected: "Reddedildi",
@@ -32,6 +32,7 @@ export default function AdminPaymentsPage() {
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [bank, setBank] = useState({ name: "", iban: "", holder: "" });
   const [message, setMessage] = useState("Kontrol ediliyor...");
+  const proofReviewCount = items.filter((item) => item.payment_status === "proof_submitted").length;
 
   const load = async () => {
     try {
@@ -223,6 +224,11 @@ export default function AdminPaymentsPage() {
         {message && (
           <p className="mb-5 rounded-xl bg-white p-4 text-sm font-semibold text-[var(--green)]">
             {message}
+          </p>
+        )}
+        {proofReviewCount > 0 && (
+          <p role="status" className="mb-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-950">
+            {proofReviewCount} dekont admin onayı bekliyor. İlgili rezervasyon satırını buradan, maç defterinde ise adına tıklayarak açabilirsin.
           </p>
         )}
         <section className="space-y-3">

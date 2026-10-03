@@ -29,6 +29,7 @@ type Booking = {
   deposit_amount: number;
   paid_amount: number;
   payment_status: string;
+  notes?: string;
   subscriber: boolean;
   whatsapp_confirmed?: boolean;
   reminder_sent?: boolean;
@@ -60,7 +61,7 @@ const statusLabels: Record<string, string> = {
   paid: "Tamamı Ödendi",
   approved: "Onaylandı",
   deposit: "Kapora",
-  proof_submitted: "Kapora",
+  proof_submitted: "Dekont gönderildi · Onay bekliyor",
   unpaid: "Ödenmedi",
   pending: "Ödenmedi",
   rejected: "Reddedildi",
@@ -88,6 +89,10 @@ export default function AdminBookingsPage() {
   >([]);
   const [manualOpen, setManualOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [paymentProofUrl, setPaymentProofUrl] = useState("");
+  const [paymentProofType, setPaymentProofType] = useState<"image" | "pdf">("image");
+  const [loadingPaymentProof, setLoadingPaymentProof] = useState(false);
+  const [paymentProofError, setPaymentProofError] = useState("");
   const [bookingAmount, setBookingAmount] = useState("");
   const [bookingPaymentStatus, setBookingPaymentStatus] = useState("unpaid");
   const [bookingDeposit, setBookingDeposit] = useState("");
@@ -135,8 +140,8 @@ export default function AdminBookingsPage() {
     const queryBookings = (withTracking: boolean) => client
       .from("booking_requests")
       .select(withTracking
-        ? "id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, subscriber, whatsapp_confirmed, reminder_sent"
-        : "id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, subscriber")
+        ? "id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, notes, subscriber, whatsapp_confirmed, reminder_sent"
+        : "id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, notes, subscriber")
       .gte("booking_date", queryStart)
       .lte("booking_date", queryEnd)
       .order("booking_date")
@@ -241,8 +246,35 @@ export default function AdminBookingsPage() {
     }
   };
 
+  const loadPaymentProof = async (bookingToLoad: Booking | null = selectedBooking) => {
+    if (!bookingToLoad) return;
+    setLoadingPaymentProof(true);
+    setPaymentProofError("");
+    try {
+      const { data } = await getSupabaseClient().auth.getSession();
+      const accessToken = data.session?.access_token;
+      if (!accessToken) throw new Error("Admin oturumu bulunamadı.");
+      const response = await fetch("/api/admin/payment-proof", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ bookingId: bookingToLoad.id }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Dekont açılamadı.");
+      setPaymentProofUrl(result.url);
+      setPaymentProofType(result.type === "pdf" ? "pdf" : "image");
+    } catch (error) {
+      setPaymentProofError(error instanceof Error ? error.message : "Dekont açılamadı.");
+    } finally {
+      setLoadingPaymentProof(false);
+    }
+  };
+
   const openBookingDetails = (booking: Booking) => {
     setSelectedBooking(booking);
+    setPaymentProofUrl("");
+    setPaymentProofType("image");
+    setPaymentProofError("");
     setBookingAmount(String(booking.total_amount ?? 0));
     setBookingDeposit(String(booking.deposit_amount ?? 0));
     setBookingPaymentStatus(
@@ -256,6 +288,7 @@ export default function AdminBookingsPage() {
           : "unpaid",
     );
     setCopiedPhone(false);
+    if (booking.notes?.includes("[payment-proof:")) void loadPaymentProof(booking);
   };
 
   const openSubscriptionDetails = (slot: SubscriptionSlot, date: string, time: string) => {
@@ -292,7 +325,7 @@ export default function AdminBookingsPage() {
       .from("booking_requests")
       .update({ total_amount: amount, deposit_amount: deposit, paid_amount: deposit, payment_status: bookingPaymentStatus })
       .eq("id", selectedBooking.id)
-      .select("id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, subscriber, whatsapp_confirmed, reminder_sent")
+      .select("id, customer_name, phone, booking_date, booking_time, duration_hours, total_amount, deposit_amount, paid_amount, payment_status, notes, subscriber, whatsapp_confirmed, reminder_sent")
       .single();
     setSavingBooking(false);
     if (error) {
@@ -687,6 +720,7 @@ export default function AdminBookingsPage() {
           <div className="booking-detail-status"><span className={`booking-status booking-status-${selectedBooking.payment_status}`}>{statusLabels[selectedBooking.payment_status] || selectedBooking.payment_status}</span><span>{selectedBooking.booking_date}</span></div>
           <section className="booking-detail-section"><h3>Müşteri bilgileri</h3><div className="booking-customer"><div className="booking-avatar">{selectedBooking.customer_name.slice(0, 1).toUpperCase()}</div><div><strong>{selectedBooking.customer_name}</strong><span>{selectedBooking.subscriber ? "Abone" : "Tek Seferlik"}</span></div></div><div className="booking-phone-row"><a href={`tel:${selectedBooking.phone}`}><Phone size={16} /> {selectedBooking.phone}</a><button type="button" onClick={copyPhone}>{copiedPhone ? <Check size={16} /> : <Copy size={16} />} {copiedPhone ? "Kopyalandı" : "Kopyala"}</button></div></section>
           <section className="booking-detail-section"><h3>Ödeme yönetimi</h3><div className="booking-detail-fields"><label>Toplam ücret<input type="number" min="0" value={bookingAmount} onChange={(event) => setBookingAmount(event.target.value)} /></label><label>Ödeme durumu<select value={bookingPaymentStatus} onChange={(event) => setBookingPaymentStatus(event.target.value)}><option value="paid">Tamamı Ödendi</option><option value="unpaid">Ödenmedi</option><option value="deposit">Kapora Alındı</option></select></label>{bookingPaymentStatus === "deposit" && <label className="booking-detail-field-wide">Alınan kapora tutarı<input type="number" min="0" max={bookingAmount || undefined} value={bookingDeposit} onChange={(event) => setBookingDeposit(event.target.value)} /></label>}</div><div className={`booking-remaining ${bookingPaymentStatus === "paid" ? "booking-remaining-paid" : ""}`}>{bookingPaymentStatus === "paid" ? <>Kalan: ₺0 <span>(Tamamlandı)</span></> : <>Kalan Tutar: ₺{Math.max(0, Number(bookingAmount || 0) - (bookingPaymentStatus === "deposit" ? Number(bookingDeposit || 0) : 0)).toLocaleString("tr-TR")} <span>({bookingPaymentStatus === "deposit" ? "Ödenmedi" : "Tamamı Ödenmedi"})</span></>}</div><button type="button" className="booking-primary-button" onClick={updateBookingPayment} disabled={savingBooking || selectedBooking.id.startsWith("subscription-")}><Save size={16} /> {selectedBooking.id.startsWith("subscription-") ? "Abonelik kaydı" : savingBooking ? "Kaydediliyor..." : "Ödemeyi Güncelle"}</button></section>
+          {selectedBooking.notes?.includes("[payment-proof:") && <section className="booking-detail-section"><h3>Gönderilen dekont</h3>{paymentProofUrl ? <div className="grid gap-3">{paymentProofType === "pdf" ? <iframe className="h-[420px] w-full rounded-xl border" src={paymentProofUrl} title="Ödeme dekontu" /> : <a href={paymentProofUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-emerald-200"><img src={paymentProofUrl} alt={`${selectedBooking.customer_name} ödeme dekontu`} className="max-h-[420px] w-full object-contain" /></a>}<a href={paymentProofUrl} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-xs font-bold text-white">Dekontu yeni sekmede aç</a></div> : <><button type="button" className="booking-primary-button" onClick={() => void loadPaymentProof()} disabled={loadingPaymentProof}>{loadingPaymentProof ? "Dekont açılıyor..." : "Dekontu görüntüle"}</button>{paymentProofError && <p role="alert" className="mt-2 text-xs font-semibold text-rose-700">{paymentProofError}</p>}</>}</section>}
           <section className="booking-detail-actions">{bookingActionMessage && <p role="status" className={`booking-action-feedback ${bookingActionMessage.includes("gönderilemedi") || bookingActionMessage.includes("Meta ") ? "booking-action-feedback-error" : ""}`}>{bookingActionMessage}</p>}<button type="button" className="booking-whatsapp-button" onClick={() => sendBookingAction("approve")} disabled={savingBooking || selectedBooking.id.startsWith("subscription-")}><Check size={17} /> {savingBooking ? "Gönderiliyor..." : "Rezervasyonu Onayla ve WhatsApp Gönder"}</button><button type="button" className="booking-whatsapp-button" onClick={() => sendBookingAction("reminder")} disabled={savingBooking || selectedBooking.id.startsWith("subscription-")}><MessageCircle size={17} /> Hatırlatma Mesajı Gönder</button><button type="button" className="booking-delete-button" onClick={deleteBooking} disabled={savingBooking}><Trash2 size={16} /> Rezervasyonu İptal Et / Sil</button></section>
         </div></div>}
         

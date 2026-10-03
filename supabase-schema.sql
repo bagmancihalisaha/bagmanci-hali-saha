@@ -222,6 +222,10 @@ insert into storage.buckets (id, name, public)
 values ('site-assets', 'site-assets', true)
 on conflict (id) do update set public = true;
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('payment-proofs', 'payment-proofs', false, 4194304, array['image/jpeg', 'image/png', 'application/pdf'])
+on conflict (id) do update set public = false, file_size_limit = 4194304, allowed_mime_types = array['image/jpeg', 'image/png', 'application/pdf'];
+
 drop policy if exists "public can read site assets" on storage.objects;
 drop policy if exists "admins upload site assets" on storage.objects;
 drop policy if exists "admins update site assets" on storage.objects;
