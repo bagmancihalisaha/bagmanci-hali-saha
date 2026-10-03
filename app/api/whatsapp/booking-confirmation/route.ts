@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getSupabaseServerClient } from "@/lib/supabaseAdmin";
-import { sendBookingReminderMessage } from "@/lib/whatsapp";
+import { sendBookingCreatedMessage, sendBookingReminderMessage } from "@/lib/whatsapp";
 
 async function isAdminAtAal2(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -62,7 +62,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Rezervasyon bulunamadı." }, { status: 404 });
     }
 
-    const result = await sendBookingReminderMessage(booking);
+    const result = action === "approve"
+      ? await sendBookingCreatedMessage(booking)
+      : await sendBookingReminderMessage(booking);
     if (!result.ok) {
       const metaError = result.data?.error;
       return NextResponse.json(
